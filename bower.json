@@ -4,7 +4,7 @@
     "iron-icon": "PolymerElements/iron-icon#",
     "iron-icons": "PolymerElements/iron-icons#",
     "paper-fab": "PolymerElements/paper-fab#",
-    "paper-icon-button": "PolymerElements/paper-icon-button#",
+    "paper-input": "PolymerElements/paper-input#",
     "polymer": "Polymer/polymer#"
   }
 }

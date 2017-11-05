@@ -6,6 +6,9 @@ handlers:
 - url: /bower_components
   static_dir: bower_components
   secure: always
+- url: /resources
+  static_dir: resources/
+  secure: always
 - url: /.*
   script: broker.app
   secure: always
