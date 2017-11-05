@@ -1,9 +1,38 @@
 <!DOCTYPE html>
 <head>
   <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="bower_components/iron-icons/iron-icons.html">
   <link rel="import" href="bower_components/paper-input/paper-input.html">
+  <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
+  <link rel="import" href="bower_components/paper-icon-button/paper-icon-button.html">
   <link rel="import" href="resources/style.html">
+  <script>
+    function $(id) {
+      return document.getElementById(id);
+    }
+    window.addEventListener("load", function() {
+      $("name").focus();
+    });
+  </script>
+  <style>
+    .inputContainer {
+      width: 50ex;
+    }
+    #zip {
+      width: 5em;
+    }
+  </style>
+  <title>Property estimator</title>
 </head>
-TODO: Select the first field.
-<paper-input always-float-label label="Address" id="address"><paper-input>
-TODO: Add several sections.
+<paper-toolbar>
+  <paper-icon-button slot="top" icon="arrow-back"></paper-icon-button>
+  <div slot="top" class = "title" id="title">Property information</div>
+  <paper-icon-button slot="top" icon="arrow-forward"></paper-icon-button>
+</paper-toolbar>
+TODO: Plug & disable buttons and update title.
+<div class="inputContainer">
+  <paper-input always-float-label label="Name" id="name"></paper-input>
+  <paper-input always-float-label label="Address" id="address"></paper-input>
+  <paper-input always-float-label label="Zip" id="zip" auto-validate pattern="[0-9]*" error-message="numbers only" maxlength=5 char-counter></paper-input>
+</div>
+
