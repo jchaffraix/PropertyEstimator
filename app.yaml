@@ -3,8 +3,11 @@ api_version: 1
 threadsafe: true
 
 handlers:
+- url: /bower_components
+  static_dir: bower_components
+  secure: always
 - url: /.*
-  script: start.app
+  script: broker.app
   secure: always
 
 libraries:
