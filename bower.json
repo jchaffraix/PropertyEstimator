@@ -1,11 +1,11 @@
 {
   "name": "polymer-project",
   "dependencies": {
+    "app-layout": "PolymerElements/app-layout#",
     "iron-icon": "PolymerElements/iron-icon#",
     "iron-icons": "PolymerElements/iron-icons#",
     "paper-input": "PolymerElements/paper-input#",
     "paper-fab": "PolymerElements/paper-fab#",
-    "paper-toolbar": "PolymerElements/paper-toolbar#",
     "paper-icon-button": "PolymerElements/paper-icon-button#",
     "polymer": "Polymer/polymer#"
   }
