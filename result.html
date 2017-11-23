@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<head>
+  <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <link rel="import" href="bower_components/iron-collapse/iron-collapse.html">
+  <script>
+    function $(id) {
+      return document.getElementById(id);
+    }
+
+    function preparePage() {
+      registerEventListeners();
+      // TODO: Plug the real data.
+      populateData(generateFakeData());
+    }
+
+    function registerEventListeners() {
+      var elements = document.getElementsByClassName("collapsible");
+      for (var i = 0; i < elements.length; ++i) {
+        elements[i].firstElementChild.addEventListener("click", toggle, false);
+      }
+    }
+    function generateFakeData() {
+      return {
+        "property": {
+          "name": "High St",
+          "price": 799000,
+          "address": "123 High St, Oakland",
+          "zip": 99999,
+        },
+        "mortgage": {
+          //"amount": 80000,
+          "downpayment": 0.35,
+          "interest": 0.0525,
+          "lengthYears": 30,
+          // TODO: Can be inferred from the previous data.
+          "monthlyPayment": 2867.87,
+        },
+        "closingCosts": {
+          "amount": 15980,
+          "repairs": 10000,
+        },
+        "incomeStreams": {
+          // TODO: For PV analysis, we should probably allow for timed income streams.
+          "rent": 6150,
+          "other": 0,
+        },
+        "expenses": {
+          // TODO: Some of these values are based on GOI, some GSI and some absolute.
+          "water": 0,
+          "electricity": 0,
+          "insurance": 233,
+          "RAP fee": 17,
+          "property tax": 899.42,
+          "business tax": 86,
+          "vacancy": .05,
+          "maintenance": .10,
+        }
+      };
+    }
+    function populateData(info) {
+      // TODO: Support other locales and currencies?
+      var currencyFormatter = new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 2,
+      });
+      var percentFormatter = new Intl.NumberFormat('en-US', {
+        style: 'percent',
+        maximumFractionDigits: 2,
+      });
+
+      // Set up the common values.
+      $("name").innerHTML = info.property.name;
+      $("price").innerHTML = currencyFormatter.format(info.property.price);
+      $("closingCosts").innerHTML = currencyFormatter.format(info.closingCosts.amount);
+      $("repairs").innerHTML = currencyFormatter.format(info.closingCosts.repairs);
+      var downpayment = info.mortgage.downpayment * info.property.price;
+      var cashOutlay = info.closingCosts.amount + info.closingCosts.repairs + downpayment;
+      $("cashOutlay").innerHTML = currencyFormatter.format(cashOutlay);
+
+      var income = info.incomeStreams.rent + info.incomeStreams.other;
+      $("goi").innerHTML = currencyFormatter.format(income);
+      var vacancy = info.expenses.vacancy * income;
+      $("vacancy").innerHTML = currencyFormatter.format(vacancy);
+
+      window.info = info;
+      console.log(info.expenses);
+      var expenses = 0;
+      for (var expense in info.expenses) {
+        // TODO: It's gross to ignore vacancy. It should be moved out of the operating expenses.
+        if (expense === "vacancy")
+          continue;
+
+        // TODO: Gross.
+        if (expense == "maintenance") {
+          expenses += info.expenses[expense] * income;
+        } else {
+          expenses += info.expenses[expense];
+        }
+      }
+      $("expenses").innerHTML = currencyFormatter.format(expenses);
+      var noi = income - expenses - vacancy;
+      $("noi").innerHTML = currencyFormatter.format(12 * noi);
+      var debtService = info.mortgage.monthlyPayment;
+      $("debtService").innerHTML = currencyFormatter.format(debtService);
+      $("cashflow").innerHTML = currencyFormatter.format(noi - debtService);
+
+      // Set up the property details tab.
+      $("address").innerHTML = info.property.address;
+      $("zip").innerHTML = info.property.zip;
+
+      // Set up the financing tab.
+      // TODO: Allow multiple loans.
+      // TODO: We should allow percentage and absolute amount.
+      $("amount").innerHTML = currencyFormatter.format(info.property.price - downpayment);
+      $("interest").innerHTML = percentFormatter.format(info.mortgage.interest);
+      $("lengthYears").innerHTML = info.mortgage.lengthYears;
+      $("monthlyPayment").innerHTML = currencyFormatter.format(debtService);
+
+      // TODO: Set up Yearly projection, IRR and PV analysis.
+    }
+    function toggle(e) {
+      var target = e.target.firstElementChild === null ? e.target.parentElement : e.target;
+      var collapsibleElem = target.nextElementSibling;
+      collapsibleElem.toggle();
+      // TODO: We should just rotate the symbol.
+      target.firstElementChild.innerHTML = collapsibleElem.opened ? "▼" : "►";
+    }
+    window.addEventListener("load", preparePage, false);
+  </script>
+  <style>
+    .collapsible {
+      padding: 15px;
+      border: 1px solid #dedede;
+    }
+  </style>
+</head>
+<body>
+<!-- Data for year 1:
+
+Year 1 metrics:
+- DSCR, GRM, CapRate, price
+- Diagram spendings.
+All year metrics:
+- GOI, all expenses (vacancies vs rest? (gas, electricity, ...)), NOI, cash flow
+- ROIs (cash-on-cash,COE, equity build, tax savings, total), cash flow per year, per unit per m
+-->
+<div class="collapsible">
+  <span><span>►</span>Property name: <span id="name"></span></span>
+  <iron-collapse>
+    <div>Property address: <span id="address"></span></div>
+    <div>ZIP: <span id="zip"></span></div>
+  </iron-collapse>
+</div>
+<div>Property price: <span id="price"></span></div>
+<div>Closing costs: <span id="closingCosts"></span></div>
+<div>Repairs: <span id="repairs"></span></div>
+<div>Cash outlay: <span id="cashOutlay"></span></div>
+
+<div>GOI: <span id="goi"></span></div>
+<div>Vacancy: <span id="vacancy"></span></div>
+<div>Operating expenses: <span id="expenses"></span></div>
+<div>NOI: <span id="noi"></span></div>
+<div>DebtService: <span id="debtService"></span></div>
+<div>Cashflow: <span id="cashflow"></span></div>
+
+<div>Loan amount: <span id="amount"></span></div>
+<div>Interest rate: <span id="interest"></span></div>
+<div>Length (years): <span id="lengthYears"></span></div>
+<div>Mortgage payment: <span id="monthlyPayment"></span></div>
+<!-- TODO: Total interest? Total cost? -->
+<!-- Debt service 3m, 6m? -->
+
+<!-- TODO: Switch this to a custom element, use this as canvas:
+https://github.com/PolymerElements/iron-collapse/blob/master/demo/simple-expand-collapse.html-->
+<div class="collapsible">
+  <span><span>►</span>Yearly projections</span>
+  <iron-collapse>
+  </iron-collapse>
+</div>
+<div class="collapsible">
+  <span><span>►</span>IRR</span>
+  <iron-collapse>
+  </iron-collapse>
+</div>
+<div class="collapsible">
+  <span><span>►</span>Present value analysis</span>
+  <iron-collapse>
+  </iron-collapse>
+<div>
+  

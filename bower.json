@@ -2,6 +2,7 @@
   "name": "polymer-project",
   "dependencies": {
     "app-layout": "PolymerElements/app-layout#",
+    "iron-collapse": "PolymerElements/iron-collapse#",
     "iron-icon": "PolymerElements/iron-icon#",
     "iron-icons": "PolymerElements/iron-icons#",
     "paper-input": "PolymerElements/paper-input#",
