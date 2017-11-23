@@ -7,6 +7,11 @@
       return document.getElementById(id);
     }
 
+    function PMT(interestRate, numberPeriods, loanAmount) {
+      var discountFactor = (Math.pow(1 + interestRate, numberPeriods) - 1) / (interestRate * Math.pow(1 + interestRate, numberPeriods));
+      return loanAmount / discountFactor;
+    }
+
     function preparePage() {
       registerEventListeners();
       // TODO: Plug the real data.
@@ -32,8 +37,6 @@
           "downpayment": 0.35,
           "interest": 0.0525,
           "lengthYears": 30,
-          // TODO: Can be inferred from the previous data.
-          "monthlyPayment": 2867.87,
         },
         "closingCosts": {
           "amount": 15980,
@@ -101,7 +104,9 @@
       $("expenses").innerHTML = currencyFormatter.format(expenses);
       var noi = income - expenses - vacancy;
       $("noi").innerHTML = currencyFormatter.format(12 * noi);
-      var debtService = info.mortgage.monthlyPayment;
+      var loanedAmount = info.property.price - downpayment;
+      var debtService = PMT(info.mortgage.interest / 12, info.mortgage.lengthYears * 12, loanedAmount);
+
       $("debtService").innerHTML = currencyFormatter.format(debtService);
       $("cashflow").innerHTML = currencyFormatter.format(noi - debtService);
 
@@ -112,7 +117,7 @@
       // Set up the financing tab.
       // TODO: Allow multiple loans.
       // TODO: We should allow percentage and absolute amount.
-      $("amount").innerHTML = currencyFormatter.format(info.property.price - downpayment);
+      $("amount").innerHTML = currencyFormatter.format(loanedAmount);
       $("interest").innerHTML = percentFormatter.format(info.mortgage.interest);
       $("lengthYears").innerHTML = info.mortgage.lengthYears;
       $("monthlyPayment").innerHTML = currencyFormatter.format(debtService);
