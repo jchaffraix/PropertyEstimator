@@ -1,29 +1,25 @@
 <!DOCTYPE html>
 <head>
-  <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
-  <link rel="import" href="bower_components/iron-collapse/iron-collapse.html">
+  <link rel="import" href="resources/style.html">
+  <link rel="stylesheet" type="text/css" href="semantic/dist/semantic.min.css">
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js"
+      integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+      crossorigin="anonymous"></script>
+  <script src="semantic/dist/semantic.min.js"></script>
   <script>
-    function $(id) {
-      return document.getElementById(id);
-    }
-
     function PMT(interestRate, numberPeriods, loanAmount) {
       var discountFactor = (Math.pow(1 + interestRate, numberPeriods) - 1) / (interestRate * Math.pow(1 + interestRate, numberPeriods));
       return loanAmount / discountFactor;
     }
 
     function preparePage() {
-      registerEventListeners();
+      // Initialize semantics.
+      $(".ui.accordion").accordion();
+
       // TODO: Plug the real data.
       populateData(generateFakeData());
     }
 
-    function registerEventListeners() {
-      var elements = document.getElementsByClassName("collapsible");
-      for (var i = 0; i < elements.length; ++i) {
-        elements[i].firstElementChild.addEventListener("click", toggle, false);
-      }
-    }
     function generateFakeData() {
       return {
         "property": {
@@ -73,18 +69,18 @@
       });
 
       // Set up the common values.
-      $("name").innerHTML = info.property.name;
-      $("price").innerHTML = currencyFormatter.format(info.property.price);
-      $("closingCosts").innerHTML = currencyFormatter.format(info.closingCosts.amount);
-      $("repairs").innerHTML = currencyFormatter.format(info.closingCosts.repairs);
+      $("#name").replaceWith(info.property.name);
+      $("#price").replaceWith(currencyFormatter.format(info.property.price));
+      $("#closingCosts").replaceWith(currencyFormatter.format(info.closingCosts.amount));
+      $("#repairs").replaceWith(currencyFormatter.format(info.closingCosts.repairs));
       var downpayment = info.mortgage.downpayment * info.property.price;
       var cashOutlay = info.closingCosts.amount + info.closingCosts.repairs + downpayment;
-      $("cashOutlay").innerHTML = currencyFormatter.format(cashOutlay);
+      $("#cashOutlay").replaceWith(currencyFormatter.format(cashOutlay));
 
       var income = info.incomeStreams.rent + info.incomeStreams.other;
-      $("goi").innerHTML = currencyFormatter.format(income);
+      $("#goi").replaceWith(currencyFormatter.format(income));
       var vacancy = info.expenses.vacancy * income;
-      $("vacancy").innerHTML = currencyFormatter.format(vacancy);
+      $("#vacancy").replaceWith(currencyFormatter.format(vacancy));
 
       window.info = info;
       console.log(info.expenses);
@@ -101,44 +97,31 @@
           expenses += info.expenses[expense];
         }
       }
-      $("expenses").innerHTML = currencyFormatter.format(expenses);
+      $("#expenses").replaceWith(currencyFormatter.format(expenses));
       var noi = income - expenses - vacancy;
-      $("noi").innerHTML = currencyFormatter.format(12 * noi);
+      $("#noi").replaceWith(currencyFormatter.format(12 * noi));
       var loanedAmount = info.property.price - downpayment;
       var debtService = PMT(info.mortgage.interest / 12, info.mortgage.lengthYears * 12, loanedAmount);
 
-      $("debtService").innerHTML = currencyFormatter.format(debtService);
-      $("cashflow").innerHTML = currencyFormatter.format(noi - debtService);
+      $("#debtService").replaceWith(currencyFormatter.format(debtService));
+      $("#cashflow").replaceWith(currencyFormatter.format(noi - debtService));
 
       // Set up the property details tab.
-      $("address").innerHTML = info.property.address;
-      $("zip").innerHTML = info.property.zip;
+      $("#address").replaceWith(info.property.address);
+      $("#zip").replaceWith(info.property.zip);
 
       // Set up the financing tab.
       // TODO: Allow multiple loans.
       // TODO: We should allow percentage and absolute amount.
-      $("amount").innerHTML = currencyFormatter.format(loanedAmount);
-      $("interest").innerHTML = percentFormatter.format(info.mortgage.interest);
-      $("lengthYears").innerHTML = info.mortgage.lengthYears;
-      $("monthlyPayment").innerHTML = currencyFormatter.format(debtService);
+      $("#loanAmount").replaceWith(currencyFormatter.format(loanedAmount));
+      $("#interest").replaceWith(percentFormatter.format(info.mortgage.interest));
+      $("#lengthYears").replaceWith(info.mortgage.lengthYears);
+      $("#monthlyPayment").replaceWith(currencyFormatter.format(debtService));
 
       // TODO: Set up Yearly projection, IRR and PV analysis.
     }
-    function toggle(e) {
-      var target = e.target.firstElementChild === null ? e.target.parentElement : e.target;
-      var collapsibleElem = target.nextElementSibling;
-      collapsibleElem.toggle();
-      // TODO: We should just rotate the symbol.
-      target.firstElementChild.innerHTML = collapsibleElem.opened ? "▼" : "►";
-    }
     window.addEventListener("load", preparePage, false);
   </script>
-  <style>
-    .collapsible {
-      padding: 15px;
-      border: 1px solid #dedede;
-    }
-  </style>
 </head>
 <body>
 <!-- Data for year 1:
@@ -150,47 +133,76 @@ All year metrics:
 - GOI, all expenses (vacancies vs rest? (gas, electricity, ...)), NOI, cash flow
 - ROIs (cash-on-cash,COE, equity build, tax savings, total), cash flow per year, per unit per m
 -->
-<div class="collapsible">
-  <span><span>►</span>Property name: <span id="name"></span></span>
-  <iron-collapse>
-    <div>Property address: <span id="address"></span></div>
-    <div>ZIP: <span id="zip"></span></div>
-  </iron-collapse>
+<div class="ui segments">
+  <div class="ui segment accordion">
+    <div class="ui sub header title">
+      <i class="dropdown icon"></i>
+      Property name: <span id="name">
+    </div>
+    <div class="content">
+      <div>Property address: <span id="address"></span></div>
+      <div>ZIP: <span id="zip"></span></div>
+    </iron-collapse>
+  </div>
+  <div class="ui blue segment">
+    <table class="ui very basic table">
+      <tr><td>Property price</td><td id="price"></td></tr>
+      <tr><td>Closing costs</td><td id="closingCosts"></td></tr>
+      <tr><td>Repairs</td><td id="repairs"></td></tr>
+      <tr><td>Cash outlay</td><td id="cashOutlay"></td></tr>
+    </table>
+  </div>
+
+  <div class="ui blue segment">
+     <table class="ui very basic table">
+      <tr><td>GOI</td><td id="goi"></td></tr>
+      <tr><td>Vacancy</td><td id="vacancy"></td></tr>
+      <tr><td>Expenses</td><td id="expenses"></td></tr>
+      <tr><td>NOI</td><td id="noi"></td></tr>
+      <tr><td>Debt Service</td><td id="debtService"></td></tr>
+      <tr><td>Cashflow</td><td id="cashflow"></td></tr>
+    </table>
+  </div>
+
+  <div class="ui blue segment">
+    <div class="ui sub header title">Financing</div>
+    <table class="ui very basic table">
+      <tr><td>Loan amount</td><td id="loanAmount"></td></tr>
+      <tr><td>Interest rate</td><td id="interest"></td></tr>
+      <tr><td>Length (years)</td><td id="lengthYears"></td></tr>
+      <tr><td>Mortgage payment</td><td id="monthlyPayment"></td></tr>
+    </table>
+  </div>
 </div>
-<div>Property price: <span id="price"></span></div>
-<div>Closing costs: <span id="closingCosts"></span></div>
-<div>Repairs: <span id="repairs"></span></div>
-<div>Cash outlay: <span id="cashOutlay"></span></div>
-
-<div>GOI: <span id="goi"></span></div>
-<div>Vacancy: <span id="vacancy"></span></div>
-<div>Operating expenses: <span id="expenses"></span></div>
-<div>NOI: <span id="noi"></span></div>
-<div>DebtService: <span id="debtService"></span></div>
-<div>Cashflow: <span id="cashflow"></span></div>
-
-<div>Loan amount: <span id="amount"></span></div>
-<div>Interest rate: <span id="interest"></span></div>
-<div>Length (years): <span id="lengthYears"></span></div>
-<div>Mortgage payment: <span id="monthlyPayment"></span></div>
 <!-- TODO: Total interest? Total cost? -->
 <!-- Debt service 3m, 6m? -->
 
 <!-- TODO: Switch this to a custom element, use this as canvas:
 https://github.com/PolymerElements/iron-collapse/blob/master/demo/simple-expand-collapse.html-->
-<div class="collapsible">
-  <span><span>►</span>Yearly projections</span>
-  <iron-collapse>
-  </iron-collapse>
+<div class="ui accordion">
+  <div class="title">
+    <i class="dropdown icon"></i>
+    Yearly projections
+  </div>
+  <div class="content">
+    <p class="transition hidden">TODO: Implement.</p>
+  </div>
 </div>
-<div class="collapsible">
-  <span><span>►</span>IRR</span>
-  <iron-collapse>
-  </iron-collapse>
+<div class="ui accordion">
+  <div class="title">
+    <i class="dropdown icon"></i>
+    IRR
+  </div>
+  <div class="content">
+    <p class="transition hidden">TODO: Implement.</p>
+  </div>
 </div>
-<div class="collapsible">
-  <span><span>►</span>Present value analysis</span>
-  <iron-collapse>
-  </iron-collapse>
-<div>
-  
+<div class="ui accordion">
+  <div class="title">
+    <i class="dropdown icon"></i>
+    Present value Analysis
+  </div>
+  <div class="content">
+    <p class="transition hidden">TODO: Implement.</p>
+  </div>
+</div>
