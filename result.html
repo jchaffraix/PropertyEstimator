@@ -6,6 +6,12 @@
       integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
       crossorigin="anonymous"></script>
   <script src="semantic/dist/semantic.min.js"></script>
+  <style>
+    .table {
+      table-layout: fixed;
+    }
+  </style>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
   <script>
     function PMT(interestRate, numberPeriods, loanAmount) {
       var discountFactor = (Math.pow(1 + interestRate, numberPeriods) - 1) / (interestRate * Math.pow(1 + interestRate, numberPeriods));
@@ -45,7 +51,7 @@
           "other": 0,
         },
         "expenses": {
-          // TODO: Some of these values are based on GOI, some GSI and some absolute.
+          // TODO: Some of these values are based on GOI, some GSI, some price and some absolute.
           "water": 0,
           "electricity": 0,
           "insurance": 233,
@@ -91,7 +97,8 @@
       var vacancy = info.expenses.vacancy * income;
       $("#vacancy").replaceWith(currencyFormatter.format(vacancy));
 
-      var expenses = 0;
+      var expensesForChart = [['Expense', '$']];
+      var expensesAmount = 0;
       for (var expense in info.expenses) {
         // TODO: It's gross to ignore vacancy. It should be moved out of the operating expenses.
         if (expense === "vacancy")
@@ -99,13 +106,30 @@
 
         // TODO: Gross.
         if (expense == "maintenance") {
-          expenses += info.expenses[expense] * income;
+          var expenseAmount = info.expenses[expense] * income;
+          expensesAmount += expenseAmount;
+          expensesForChart.push([expense, expenseAmount]);
         } else {
-          expenses += info.expenses[expense];
+          var expenseAmount = info.expenses[expense];
+          expensesAmount += expenseAmount;
+          expensesForChart.push([expense, expenseAmount]);
         }
       }
-      $("#expenses").replaceWith(currencyFormatter.format(expenses));
-      var netMonthlyIncome = income - expenses - vacancy;
+      $("#expenses").replaceWith(currencyFormatter.format(expensesAmount));
+
+      google.charts.setOnLoadCallback(function() {
+        console.log(expensesForChart);
+        var data = google.visualization.arrayToDataTable(expensesForChart);
+        var options = {
+          title: 'Expenses breakdown'
+        };
+
+        var chart = new google.visualization.PieChart(document.getElementById('piechart'));
+
+        chart.draw(data, options);
+      });
+
+      var netMonthlyIncome = income - expensesAmount - vacancy;
       $("#noi").replaceWith(currencyFormatter.format(12 * netMonthlyIncome));
       $("#caprate").replaceWith(percentFormatter.format(12 * netMonthlyIncome / info.property.price));
       var loanedAmount = info.property.price - downpayment;
@@ -153,6 +177,7 @@
       // TODO: Set up Yearly projection, IRR and PV analysis.
     }
     window.addEventListener("load", preparePage, false);
+    google.charts.load('current', {'packages':['corechart']});
   </script>
 </head>
 <body>
@@ -165,26 +190,26 @@ All year metrics:
 - GOI, all expenses (vacancies vs rest? (gas, electricity, ...)), NOI, cash flow
 - ROIs (cash-on-cash,COE, equity build, tax savings, total), cash flow per year, per unit per m
 -->
-<div class="ui segments">
-  <div class="ui compact segment accordion">
-    <div class="ui title">
-      <div class="ui header">
-        <i class="dropdown icon"></i>
-        Property name: <span id="name"></span>
-      </div>
-      <table class="ui very basic collapsing table">
-        <tr><td>Property price</td><td> <span id="price"></span></td></tr>
-        <tr><td>CapRate</td><td> <span id="caprate"></span></td></tr>
-      </table>
+<div class="ui segment accordion">
+  <div class="ui title">
+    <div class="ui header">
+      <i class="dropdown icon"></i>
+      Property name: <span id="name"></span>
     </div>
-    <div class="content">
-      <table class="ui very basic collapsing table">
-        <tr><td>Property address</td><td><span id="address"></span></td></tr>
-        <tr><td>ZIP</td><td><span id="zip"></span></td></tr>
-      </table>
-    </div>
+    <table class="ui very basic collapsing table">
+      <tr><td>Property price</td><td> <span id="price"></span></td></tr>
+      <tr><td>CapRate</td><td> <span id="caprate"></span></td></tr>
+    </table>
   </div>
-  <div class="ui blue compact segment">
+  <div class="content">
+    <table class="ui very basic collapsing table">
+      <tr><td>Property address</td><td><span id="address"></span></td></tr>
+      <tr><td>ZIP</td><td><span id="zip"></span></td></tr>
+    </table>
+  </div>
+</div>
+<div class="ui segments context">
+  <div class="ui blue segment">
     <div class="ui header">
       Performance metrics
     </div>
@@ -197,8 +222,14 @@ All year metrics:
     </table>
   </div>
 
+  <div class="ui blue segment">
+    <div class="ui header">Expenses</div>
+    <!-- TODO: Add a numeric breakdown for all the expenses -->
+    <div id="piechart" style="width:800px; height:500px"></div>
+  </div>
+
   <!-- NOT REFACTORED AFTER THIS POINT -->
-  <div class="ui blue compact segment">
+  <div class="ui blue segment">
     <table class="ui very basic collapsing table">
       <tr><td>Closing costs</td><td> <span id="closingCosts"></span></td></tr>
       <tr><td>Repairs</td><td><span id="repairs"></span></td></tr>
@@ -206,7 +237,7 @@ All year metrics:
     </table>
   </div>
 
-  <div class="ui blue compact segment">
+  <div class="ui blue segment">
      <table class="ui very basic collapsing table">
       <tr><td>GOI</td><td> <span id="goi"></td></tr>
       <tr><td>Vacancy</td><td> <span id="vacancy"></td></tr>
@@ -216,8 +247,7 @@ All year metrics:
       <tr><td>Cashflow</td><td> <span id="cashflow"></td></tr>
     </table>
   </div>
-
-  <div class="ui blue compact segment">
+  <div class="ui blue segment">
     <table class="ui very basic collapsing table">
     <thead>
       <tr><td colspan="2"><div class="ui sub header title">Financing</div></td></tr>
