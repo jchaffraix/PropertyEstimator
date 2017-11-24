@@ -62,6 +62,7 @@
           "maintenance": .10,
         },
         "future": {
+          "rentIncrease": 0.05,
           "expenseIncrease": 0.03,
           "appreciation": 0.02,
         },
@@ -71,7 +72,68 @@
         }
       };
     }
+
+    function computeFinancials(info) {
+      var financials = {};
+      financials.monthlyGrossIncome = [ info.incomeStreams.rent + info.incomeStreams.other ];
+      financials.vacancies = [info.expenses.vacancy * financials.monthlyGrossIncome[0]];
+      financials.monthlyOperatingExpenses = [0];
+      // TODO: HACK to avoid repeating this for loop. FIX!!!!
+      financials.expensesForChart = [['Expense', '$']];
+      for (var expense in info.expenses) {
+        // TODO: It's gross to ignore vacancy. It should be moved out of the operating expenses.
+        if (expense === "vacancy")
+          continue;
+
+        // TODO: Gross.
+        var expenseAmount = 0;
+        if (expense == "maintenance") {
+          expenseAmount += info.expenses[expense] * financials.monthlyGrossIncome[0];
+        } else {
+          expenseAmount = info.expenses[expense];
+        }
+        financials.monthlyOperatingExpenses[0] += expenseAmount;
+        financials.expensesForChart.push([expense, expenseAmount]);
+      }
+      financials.expensesForChart.push(["vacancy", financials.vacancies[0]]);
+      financials.equity = [ info.mortgage.downpayment * info.property.price + info.closingCosts.amount + info.closingCosts.repairs ];
+      financials.noi = [ 12 * (financials.monthlyGrossIncome[0] - financials.monthlyOperatingExpenses[0] - financials.vacancies[0]) ];
+      financials.loanAmount = (1 - info.mortgage.downpayment) * info.property.price;
+      financials.monthlyDebtService = PMT(info.mortgage.interest / 12, info.mortgage.lengthYears * 12, financials.loanAmount);
+      financials.cashflow = [ financials.noi[0] - 12 * financials.monthlyDebtService ];
+
+      // Return on equity.
+      financials.cashflowROE = [financials.cashflow[0] / financials.equity[0]];
+      financials.appreciationROE = [(info.future.appreciation * info.property.price) / financials.equity[0]];
+      financials.loanReductionROE = [0];
+      var interests = 0;
+      for (var i = 0; i < 12; ++i) {
+        var interest = (financials.loanAmount - financials.loanReductionROE[0]) * (info.mortgage.interest / 12);
+        financials.loanReductionROE[0] += financials.monthlyDebtService - interest;
+        interests += interest;
+      }
+      financials.loanReductionROE[0] /= financials.equity[0];
+      financials.taxROE = [0];
+      // Compute the depreciation. Per the IRS, it depends on the type of property.
+      // TODO: Make those computation work for other countries.
+      var depreciationOfAsset = info.tax.percentValueOfImprovement * info.property.price;
+      if (info.property.type === "commercial") {
+        depreciationOfAsset /= 39;
+      } else {
+        depreciationOfAsset /= 27.5;
+      }
+      var remainingTaxDeduction = (depreciationOfAsset + info.closingCosts.repairs + interest) - financials.cashflow[0];
+      financials.taxROE[0] = (remainingTaxDeduction * info.tax.bracket) / financials.equity[0];
+
+      financials.totalROE = [ financials.cashflowROE[0] + financials.appreciationROE[0] + financials.loanReductionROE[0] + financials.taxROE[0] ];
+
+      // TODO: Generate future years.
+
+      return financials;
+    }
+
     function populateData(info) {
+      var financials = computeFinancials(info);
       // TODO: Support other locales and currencies?
       var currencyFormatter = new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -88,38 +150,15 @@
       $("#price").replaceWith(currencyFormatter.format(info.property.price));
       $("#closingCosts").replaceWith(currencyFormatter.format(info.closingCosts.amount));
       $("#repairs").replaceWith(currencyFormatter.format(info.closingCosts.repairs));
-      var downpayment = info.mortgage.downpayment * info.property.price;
-      var cashOutlay = info.closingCosts.amount + info.closingCosts.repairs + downpayment;
-      $("#cashOutlay").replaceWith(currencyFormatter.format(cashOutlay));
+      $("#cashOutlay").replaceWith(currencyFormatter.format(financials.equity[0]));
 
-      var income = info.incomeStreams.rent + info.incomeStreams.other;
-      $("#goi").replaceWith(currencyFormatter.format(income));
-      var vacancy = info.expenses.vacancy * income;
-      $("#vacancy").replaceWith(currencyFormatter.format(vacancy));
+      $("#goi").replaceWith(currencyFormatter.format(financials.monthlyGrossIncome[0]));
+      $("#vacancy").replaceWith(currencyFormatter.format(financials.vacancies[0]));
 
-      var expensesForChart = [['Expense', '$']];
-      var expensesAmount = 0;
-      for (var expense in info.expenses) {
-        // TODO: It's gross to ignore vacancy. It should be moved out of the operating expenses.
-        if (expense === "vacancy")
-          continue;
-
-        // TODO: Gross.
-        if (expense == "maintenance") {
-          var expenseAmount = info.expenses[expense] * income;
-          expensesAmount += expenseAmount;
-          expensesForChart.push([expense, expenseAmount]);
-        } else {
-          var expenseAmount = info.expenses[expense];
-          expensesAmount += expenseAmount;
-          expensesForChart.push([expense, expenseAmount]);
-        }
-      }
-      $("#expenses").replaceWith(currencyFormatter.format(expensesAmount));
+      $("#expenses").replaceWith(currencyFormatter.format(financials.monthlyOperatingExpenses[0]));
 
       google.charts.setOnLoadCallback(function() {
-        console.log(expensesForChart);
-        var data = google.visualization.arrayToDataTable(expensesForChart);
+        var data = google.visualization.arrayToDataTable(financials.expensesForChart);
         var options = {
           title: 'Expenses breakdown'
         };
@@ -129,14 +168,10 @@
         chart.draw(data, options);
       });
 
-      var netMonthlyIncome = income - expensesAmount - vacancy;
-      $("#noi").replaceWith(currencyFormatter.format(12 * netMonthlyIncome));
-      $("#caprate").replaceWith(percentFormatter.format(12 * netMonthlyIncome / info.property.price));
-      var loanedAmount = info.property.price - downpayment;
-      var monthlyDebtService = PMT(info.mortgage.interest / 12, info.mortgage.lengthYears * 12, loanedAmount);
-
-      $("#debtService").replaceWith(currencyFormatter.format(monthlyDebtService));
-      $("#cashflow").replaceWith(currencyFormatter.format(netMonthlyIncome - monthlyDebtService));
+      $("#noi").replaceWith(currencyFormatter.format(financials.noi[0]));
+      $("#caprate").replaceWith(percentFormatter.format(financials.noi[0] / info.property.price));
+      $("#debtService").replaceWith(currencyFormatter.format(financials.monthlyDebtService));
+      $("#cashflow").replaceWith(currencyFormatter.format(financials.cashflow[0] / 12));
 
       // Set up the property details tab.
       $("#address").replaceWith(info.property.address);
@@ -145,35 +180,17 @@
       // Set up the financing tab.
       // TODO: Allow multiple loans.
       // TODO: We should allow percentage and absolute amount.
-      $("#loanAmount").replaceWith(currencyFormatter.format(loanedAmount));
+      $("#loanAmount").replaceWith(currencyFormatter.format(financials.loanAmount));
       $("#interest").replaceWith(percentFormatter.format(info.mortgage.interest));
       $("#lengthYears").replaceWith(info.mortgage.lengthYears);
-      $("#monthlyPayment").replaceWith(currencyFormatter.format(monthlyDebtService));
+      $("#monthlyPayment").replaceWith(currencyFormatter.format(financials.monthlyDebtService));
 
       // Performance metrics
-      var yearlyCashflow = 12 * (netMonthlyIncome - monthlyDebtService);
-      var cashflowROE = yearlyCashflow / cashOutlay;
-      $("#cashflowROE").replaceWith(percentFormatter.format(cashflowROE));
-      var appreciationROE = (info.future.appreciation * info.property.price) / cashOutlay;
-      $("#appreciationROE").replaceWith(percentFormatter.format(appreciationROE));
-      var equityBuild = 0;
-      for (var i = 0; i < 12; ++i) {
-        var interest = (loanedAmount - equityBuild) * (info.mortgage.interest / 12);
-        equityBuild += monthlyDebtService - interest;
-      }
-      var equityBuildROE = equityBuild / cashOutlay;
-      $("#equityBuildROE").replaceWith(percentFormatter.format(equityBuildROE));
-      // TODO: Include repairs?
-      var depreciationOfAsset = info.tax.percentValueOfImprovement * info.property.price;
-      if (info.property.type === "commercial") {
-        depreciationOfAsset /= 39;
-      } else {
-        depreciationOfAsset /= 27.5;
-      }
-      var taxBenefits = info.tax.bracket * (depreciationOfAsset - yearlyCashflow - equityBuildROE);
-      var taxROE = taxBenefits / cashOutlay;
-      $("#taxROE").replaceWith(percentFormatter.format(taxROE));
-      $("#totalROE").replaceWith(percentFormatter.format(cashflowROE + appreciationROE + equityBuildROE + taxROE));
+      $("#cashflowROE").replaceWith(percentFormatter.format(financials.cashflowROE[0]));
+      $("#appreciationROE").replaceWith(percentFormatter.format(financials.appreciationROE[0]));
+      $("#equityBuildROE").replaceWith(percentFormatter.format(financials.loanReductionROE[0]));
+      $("#taxROE").replaceWith(percentFormatter.format(financials.taxROE[0]));
+      $("#totalROE").replaceWith(percentFormatter.format(financials.totalROE[0]));
       // TODO: Set up Yearly projection, IRR and PV analysis.
     }
     window.addEventListener("load", preparePage, false);
