@@ -11,8 +11,13 @@
       table-layout: fixed;
     }
   </style>
+  <!-- TODO: Should we use plain old D3. Examples:
+  https://bl.ocks.org/mbostock/3887235
+  https://stackoverflow.com/questions/36295050/d3-pie-charts -->
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
   <script>
+    // TODO: This should be an option for the user.
+    var numberOfYearsToProject = 15;
     function PMT(interestRate, numberPeriods, loanAmount) {
       var discountFactor = (Math.pow(1 + interestRate, numberPeriods) - 1) / (interestRate * Math.pow(1 + interestRate, numberPeriods));
       return loanAmount / discountFactor;
@@ -62,7 +67,7 @@
           "maintenance": .10,
         },
         "future": {
-          "rentIncrease": 0.05,
+          "rentIncrease": 0.005,
           "expenseIncrease": 0.03,
           "appreciation": 0.02,
         },
@@ -78,6 +83,7 @@
       financials.monthlyGrossIncome = [ info.incomeStreams.rent + info.incomeStreams.other ];
       financials.vacancies = [info.expenses.vacancy * financials.monthlyGrossIncome[0]];
       financials.monthlyOperatingExpenses = [0];
+      financials.loanAmount = [];
       // TODO: HACK to avoid repeating this for loop. FIX!!!!
       financials.expensesForChart = [['Expense', '$']];
       for (var expense in info.expenses) {
@@ -98,22 +104,33 @@
       financials.expensesForChart.push(["vacancy", financials.vacancies[0]]);
       financials.equity = [ info.mortgage.downpayment * info.property.price + info.closingCosts.amount + info.closingCosts.repairs ];
       financials.noi = [ 12 * (financials.monthlyGrossIncome[0] - financials.monthlyOperatingExpenses[0] - financials.vacancies[0]) ];
-      financials.loanAmount = (1 - info.mortgage.downpayment) * info.property.price;
+      // TODO: Rename to principalRemaining.
+      financials.loanAmount.push((1 - info.mortgage.downpayment) * info.property.price);
       financials.monthlyDebtService = PMT(info.mortgage.interest / 12, info.mortgage.lengthYears * 12, financials.loanAmount);
       financials.cashflow = [ financials.noi[0] - 12 * financials.monthlyDebtService ];
+      financials.propertyValue = [ info.property.price ];
+
+      var nextYearEquity = financials.equity[0];
 
       // Return on equity.
       financials.cashflowROE = [financials.cashflow[0] / financials.equity[0]];
-      financials.appreciationROE = [(info.future.appreciation * info.property.price) / financials.equity[0]];
-      financials.loanReductionROE = [0];
+      var equityAccrued = info.future.appreciation * financials.propertyValue[0];
+      nextYearEquity += equityAccrued;
+      financials.propertyValue.push(financials.propertyValue[0] + equityAccrued);
+      financials.appreciationROE = [ equityAccrued / financials.equity[0]];
+      financials.loanReductionROE = [];
       var interests = 0;
-      for (var i = 0; i < 12; ++i) {
-        var interest = (financials.loanAmount - financials.loanReductionROE[0]) * (info.mortgage.interest / 12);
-        financials.loanReductionROE[0] += financials.monthlyDebtService - interest;
+      var loanReduction = 0;
+      for (var k = 0; k < 12; ++k) {
+        var interest = (financials.loanAmount[0] - loanReduction) * (info.mortgage.interest / 12);
+        loanReduction += financials.monthlyDebtService - interest;
         interests += interest;
       }
-      financials.loanReductionROE[0] /= financials.equity[0];
-      financials.taxROE = [0];
+      nextYearEquity += loanReduction;
+      financials.loanAmount.push(financials.loanAmount[0] - loanReduction);
+      financials.equity.push(nextYearEquity);
+      financials.loanReductionROE = [];
+      financials.loanReductionROE.push(loanReduction / financials.equity[0]);
       // Compute the depreciation. Per the IRS, it depends on the type of property.
       // TODO: Make those computation work for other countries.
       var depreciationOfAsset = info.tax.percentValueOfImprovement * info.property.price;
@@ -123,11 +140,45 @@
         depreciationOfAsset /= 27.5;
       }
       var remainingTaxDeduction = (depreciationOfAsset + info.closingCosts.repairs + interest) - financials.cashflow[0];
-      financials.taxROE[0] = (remainingTaxDeduction * info.tax.bracket) / financials.equity[0];
+      financials.taxROE = [ (remainingTaxDeduction * info.tax.bracket) / financials.equity[0] ];
 
       financials.totalROE = [ financials.cashflowROE[0] + financials.appreciationROE[0] + financials.loanReductionROE[0] + financials.taxROE[0] ];
 
-      // TODO: Generate future years.
+      for (var i = 1; i < numberOfYearsToProject; ++i) {
+        financials.monthlyGrossIncome.push(financials.monthlyGrossIncome[i - 1] * (1 + info.future.rentIncrease));
+        financials.vacancies.push(info.expenses.vacancy * financials.monthlyGrossIncome[i]);
+        financials.monthlyOperatingExpenses.push(financials.monthlyOperatingExpenses[i - 1] * (1 + info.future.expenseIncrease));
+        financials.noi.push(12 * (financials.monthlyGrossIncome[i] - financials.monthlyOperatingExpenses[i] - financials.vacancies[i]));
+        financials.cashflow.push(financials.noi[i] - 12 * financials.monthlyDebtService);
+
+        var nextYearEquity = financials.equity[i];
+
+        // Return on equity.
+        financials.cashflowROE.push(financials.cashflow[i] / financials.equity[i]);
+        var equityAccrued = info.future.appreciation * financials.propertyValue[i];
+        nextYearEquity += equityAccrued;
+        financials.propertyValue.push(financials.propertyValue[i] + equityAccrued);
+        financials.appreciationROE.push(equityAccrued / financials.equity[i]);
+
+        nextYearEquity += equityAccrued;
+        financials.appreciationROE.push(equityAccrued / financials.equity[i]);
+        var interests = 0;
+        var loanReduction = 0;
+        for (var k = 0; k < 12; ++k) {
+          var interest = (financials.loanAmount[i] - loanReduction) * (info.mortgage.interest / 12);
+          loanReduction += financials.monthlyDebtService - interest;
+          interests += interest;
+        }
+        nextYearEquity += loanReduction;
+        financials.loanAmount.push(financials.loanAmount[i] - loanReduction);
+        financials.loanReductionROE.push(loanReduction / financials.equity[i]);
+        financials.equity.push(nextYearEquity);
+        financials.loanReductionROE.push(loanReduction / financials.equity[i]);
+        var remainingTaxDeduction = (depreciationOfAsset + interest) - financials.cashflow[i];
+        financials.taxROE.push((remainingTaxDeduction * info.tax.bracket) / financials.equity[i]);
+
+        financials.totalROE.push(financials.cashflowROE[i] + financials.appreciationROE[i] + financials.loanReductionROE[i] + financials.taxROE[i]);
+      }
 
       return financials;
     }
@@ -180,7 +231,7 @@
       // Set up the financing tab.
       // TODO: Allow multiple loans.
       // TODO: We should allow percentage and absolute amount.
-      $("#loanAmount").replaceWith(currencyFormatter.format(financials.loanAmount));
+      $("#loanAmount").replaceWith(currencyFormatter.format(financials.loanAmount[0]));
       $("#interest").replaceWith(percentFormatter.format(info.mortgage.interest));
       $("#lengthYears").replaceWith(info.mortgage.lengthYears);
       $("#monthlyPayment").replaceWith(currencyFormatter.format(financials.monthlyDebtService));
@@ -191,7 +242,48 @@
       $("#equityBuildROE").replaceWith(percentFormatter.format(financials.loanReductionROE[0]));
       $("#taxROE").replaceWith(percentFormatter.format(financials.taxROE[0]));
       $("#totalROE").replaceWith(percentFormatter.format(financials.totalROE[0]));
-      // TODO: Set up Yearly projection, IRR and PV analysis.
+
+      // TODO: This should be templatized and automated.
+      // Populate the projections table.
+      // We accumulate the DOM operations into the 2 table
+      // sections to avoid touching the DOM too often.
+      var thead = document.createElement("thead");
+      var td = document.createElement("td");
+      td.appendChild(document.createTextNode("Metric"));
+      thead.appendChild(td);
+      for (var i = 0; i < numberOfYearsToProject; ++i) {
+        var td = document.createElement("td");
+        td.appendChild(document.createTextNode("Year " + (i + 1)));
+        thead.appendChild(td);
+      }
+
+      var tbody = document.createElement("tbody");
+      var metrics = ["noi", "cashflow", "cashflowROE", "appreciationROE", "loanReductionROE", "taxROE", "totalROE"];
+      for (var i = 0; i < metrics.length; ++i) {
+        var metric = metrics[i];
+        var tr = document.createElement("tr");
+        var td = document.createElement("td");
+        // TODO: Those are not great labels :(
+        td.appendChild(document.createTextNode(metric));
+        tr.appendChild(td);
+        for (var j = 0; j < numberOfYearsToProject; ++j) {
+          var td = document.createElement("td");
+          var content;
+          if (metric === "noi" || metric === "cashflow") {
+            content = currencyFormatter.format(financials[metric][j]);
+          } else {
+            content = percentFormatter.format(financials[metric][j]);
+          }
+          td.appendChild(document.createTextNode(content));
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+      var projectionsTable = $("#projections").get()[0];
+      projectionsTable.appendChild(thead);
+      projectionsTable.appendChild(tbody);
+
+      // TODO: Set up IRR and PV analysis.
     }
     window.addEventListener("load", preparePage, false);
     google.charts.load('current', {'packages':['corechart']});
@@ -286,7 +378,10 @@ All year metrics:
     Yearly projections
   </div>
   <div class="content">
-    <p class="transition hidden">TODO: Implement.</p>
+    <p class="transition hidden">
+      <table id="projections" class="ui very basic collapsing table">
+      </table>
+    </p>
   </div>
 </div>
 <div class="ui accordion">
