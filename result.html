@@ -24,6 +24,7 @@
       return {
         "property": {
           "name": "High St",
+          "type": "commercial",
           "price": 799000,
           "address": "123 High St, Oakland",
           "zip": 99999,
@@ -53,6 +54,14 @@
           "business tax": 86,
           "vacancy": .05,
           "maintenance": .10,
+        },
+        "future": {
+          "expenseIncrease": 0.03,
+          "appreciation": 0.02,
+        },
+        "tax": {
+          "bracket": 0.33,
+          "percentValueOfImprovement": .75,
         }
       };
     }
@@ -82,8 +91,6 @@
       var vacancy = info.expenses.vacancy * income;
       $("#vacancy").replaceWith(currencyFormatter.format(vacancy));
 
-      window.info = info;
-      console.log(info.expenses);
       var expenses = 0;
       for (var expense in info.expenses) {
         // TODO: It's gross to ignore vacancy. It should be moved out of the operating expenses.
@@ -98,13 +105,14 @@
         }
       }
       $("#expenses").replaceWith(currencyFormatter.format(expenses));
-      var noi = income - expenses - vacancy;
-      $("#noi").replaceWith(currencyFormatter.format(12 * noi));
+      var netMonthlyIncome = income - expenses - vacancy;
+      $("#noi").replaceWith(currencyFormatter.format(12 * netMonthlyIncome));
+      $("#caprate").replaceWith(percentFormatter.format(12 * netMonthlyIncome / info.property.price));
       var loanedAmount = info.property.price - downpayment;
-      var debtService = PMT(info.mortgage.interest / 12, info.mortgage.lengthYears * 12, loanedAmount);
+      var monthlyDebtService = PMT(info.mortgage.interest / 12, info.mortgage.lengthYears * 12, loanedAmount);
 
-      $("#debtService").replaceWith(currencyFormatter.format(debtService));
-      $("#cashflow").replaceWith(currencyFormatter.format(noi - debtService));
+      $("#debtService").replaceWith(currencyFormatter.format(monthlyDebtService));
+      $("#cashflow").replaceWith(currencyFormatter.format(netMonthlyIncome - monthlyDebtService));
 
       // Set up the property details tab.
       $("#address").replaceWith(info.property.address);
@@ -116,8 +124,32 @@
       $("#loanAmount").replaceWith(currencyFormatter.format(loanedAmount));
       $("#interest").replaceWith(percentFormatter.format(info.mortgage.interest));
       $("#lengthYears").replaceWith(info.mortgage.lengthYears);
-      $("#monthlyPayment").replaceWith(currencyFormatter.format(debtService));
+      $("#monthlyPayment").replaceWith(currencyFormatter.format(monthlyDebtService));
 
+      // Performance metrics
+      var yearlyCashflow = 12 * (netMonthlyIncome - monthlyDebtService);
+      var cashflowROE = yearlyCashflow / cashOutlay;
+      $("#cashflowROE").replaceWith(percentFormatter.format(cashflowROE));
+      var appreciationROE = (info.future.appreciation * info.property.price) / cashOutlay;
+      $("#appreciationROE").replaceWith(percentFormatter.format(appreciationROE));
+      var equityBuild = 0;
+      for (var i = 0; i < 12; ++i) {
+        var interest = (loanedAmount - equityBuild) * (info.mortgage.interest / 12);
+        equityBuild += monthlyDebtService - interest;
+      }
+      var equityBuildROE = equityBuild / cashOutlay;
+      $("#equityBuildROE").replaceWith(percentFormatter.format(equityBuildROE));
+      // TODO: Include repairs?
+      var depreciationOfAsset = info.tax.percentValueOfImprovement * info.property.price;
+      if (info.property.type === "commercial") {
+        depreciationOfAsset /= 39;
+      } else {
+        depreciationOfAsset /= 27.5;
+      }
+      var taxBenefits = info.tax.bracket * (depreciationOfAsset - yearlyCashflow - equityBuildROE);
+      var taxROE = taxBenefits / cashOutlay;
+      $("#taxROE").replaceWith(percentFormatter.format(taxROE));
+      $("#totalROE").replaceWith(percentFormatter.format(cashflowROE + appreciationROE + equityBuildROE + taxROE));
       // TODO: Set up Yearly projection, IRR and PV analysis.
     }
     window.addEventListener("load", preparePage, false);
@@ -134,51 +166,73 @@ All year metrics:
 - ROIs (cash-on-cash,COE, equity build, tax savings, total), cash flow per year, per unit per m
 -->
 <div class="ui segments">
-  <div class="ui segment accordion">
-    <div class="ui sub header title">
-      <i class="dropdown icon"></i>
-      Property name: <span id="name">
+  <div class="ui compact segment accordion">
+    <div class="ui title">
+      <div class="ui header">
+        <i class="dropdown icon"></i>
+        Property name: <span id="name"></span>
+      </div>
+      <table class="ui very basic collapsing table">
+        <tr><td>Property price</td><td> <span id="price"></span></td></tr>
+        <tr><td>CapRate</td><td> <span id="caprate"></span></td></tr>
+      </table>
     </div>
     <div class="content">
-      <div>Property address: <span id="address"></span></div>
-      <div>ZIP: <span id="zip"></span></div>
-    </iron-collapse>
+      <table class="ui very basic collapsing table">
+        <tr><td>Property address</td><td><span id="address"></span></td></tr>
+        <tr><td>ZIP</td><td><span id="zip"></span></td></tr>
+      </table>
+    </div>
   </div>
-  <div class="ui blue segment">
-    <table class="ui very basic table">
-      <tr><td>Property price</td><td id="price"></td></tr>
-      <tr><td>Closing costs</td><td id="closingCosts"></td></tr>
-      <tr><td>Repairs</td><td id="repairs"></td></tr>
-      <tr><td>Cash outlay</td><td id="cashOutlay"></td></tr>
+  <div class="ui blue compact segment">
+    <div class="ui header">
+      Performance metrics
+    </div>
+    <table class="ui very basic collapsing table">
+      <tr><td>Cashflow return on equity</td><td> <span id="cashflowROE"></span></td></tr>
+      <tr><td>Appreciation return on equity</td><td> <span id="appreciationROE"></span></td></tr>
+      <tr><td>Equity build return on equity</td><td> <span id="equityBuildROE"></span></td></tr>
+      <tr><td>Tax return on equity</td><td> <span id="taxROE"></span></td></tr>
+      <tr><td>Total return on equity</td><td> <span id="totalROE"></span></td></tr>
     </table>
   </div>
 
-  <div class="ui blue segment">
-     <table class="ui very basic table">
-      <tr><td>GOI</td><td id="goi"></td></tr>
-      <tr><td>Vacancy</td><td id="vacancy"></td></tr>
-      <tr><td>Expenses</td><td id="expenses"></td></tr>
-      <tr><td>NOI</td><td id="noi"></td></tr>
-      <tr><td>Debt Service</td><td id="debtService"></td></tr>
-      <tr><td>Cashflow</td><td id="cashflow"></td></tr>
+  <!-- NOT REFACTORED AFTER THIS POINT -->
+  <div class="ui blue compact segment">
+    <table class="ui very basic collapsing table">
+      <tr><td>Closing costs</td><td> <span id="closingCosts"></span></td></tr>
+      <tr><td>Repairs</td><td><span id="repairs"></span></td></tr>
+      <tr><td>Cash outlay</td><td><span id="cashOutlay"></span></td></tr>
     </table>
   </div>
 
-  <div class="ui blue segment">
-    <div class="ui sub header title">Financing</div>
-    <table class="ui very basic table">
-      <tr><td>Loan amount</td><td id="loanAmount"></td></tr>
-      <tr><td>Interest rate</td><td id="interest"></td></tr>
-      <tr><td>Length (years)</td><td id="lengthYears"></td></tr>
-      <tr><td>Mortgage payment</td><td id="monthlyPayment"></td></tr>
+  <div class="ui blue compact segment">
+     <table class="ui very basic collapsing table">
+      <tr><td>GOI</td><td> <span id="goi"></td></tr>
+      <tr><td>Vacancy</td><td> <span id="vacancy"></td></tr>
+      <tr><td>Expenses</td><td> <span id="expenses"></td></tr>
+      <tr><td>NOI</td><td> <span id="noi"></td></tr>
+      <tr><td>Debt Service</td><td> <span id="debtService"></td></tr>
+      <tr><td>Cashflow</td><td> <span id="cashflow"></td></tr>
+    </table>
+  </div>
+
+  <div class="ui blue compact segment">
+    <table class="ui very basic collapsing table">
+    <thead>
+      <tr><td colspan="2"><div class="ui sub header title">Financing</div></td></tr>
+    </thead>
+    <tbody>
+      <tr><td>Loan amount</td><td> <span id="loanAmount"></td></tr>
+      <tr><td>Interest rate</td><td> <span id="interest"></td></tr>
+      <tr><td>Length (years)</td><td> <span id="lengthYears"></td></tr>
+      <tr><td>Mortgage payment</td><td> <span id="monthlyPayment"></td></tr>
+    </tbody>
     </table>
   </div>
 </div>
 <!-- TODO: Total interest? Total cost? -->
 <!-- Debt service 3m, 6m? -->
-
-<!-- TODO: Switch this to a custom element, use this as canvas:
-https://github.com/PolymerElements/iron-collapse/blob/master/demo/simple-expand-collapse.html-->
 <div class="ui accordion">
   <div class="title">
     <i class="dropdown icon"></i>
