@@ -17,6 +17,32 @@
   https://stackoverflow.com/questions/36295050/d3-pie-charts -->
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
   <script>
+    window.selectedStep = -1;
+    function updateSelectedStep(index) {
+      if (window.selectedStep === index) {
+        return;
+      }
+
+      $(".tab").eq(window.selectedStep).removeClass("active");
+      $(".tab").eq(index).addClass("active");
+
+      window.selectedStep = index;
+      console.log("selected step updated to " + index);
+    }
+
+    function selectStep(e) {
+      var target = $(e.target);
+      if (target.hasClass("title")) {
+        target = target.parent().parent();
+      }
+      var index = $(".step").index(target);
+      if (index === -1) {
+        console.log("SelectStep called for non-step element:" + e.target);
+        return;
+      }
+      updateSelectedStep(index);
+    }
+
     function generateFakeData() {
       return {
         "property": {
@@ -79,6 +105,10 @@
       }
 
       // Step 2: Financing.
+      $("#downpaymentInput").val(info.mortgage.downpayment * 100);
+      $("#interestInput").val(info.mortgage.interest * 100);
+      $("#durationInput").val(info.mortgage.lengthYears);
+
       // Step 3: Income and expenses.
       // Step 4: Future and taxes.
       // Step 5: Report.
@@ -191,31 +221,36 @@
       // TODO: Set up IRR and PV analysis.
     }
 
-    function updatePropertyStepUI() {
-      var completedPropertyStep = true;
-      var nameInput = $("#nameInput");
-      if (nameInput.val() === "") {
-        nameInput.parent().addClass("error");
-        completedPropertyStep = false;
+    function toggleSimpleInputError(inputEl) {
+      // Most input needs their parent updated to
+      // remove the "error" class thus this helper function.
+      return toggleInputError(inputEl, inputEl.parent(), "error");
+    }
+
+    function toggleInputError(inputEl, errorEl, className) {
+      if (inputEl.val() === "") {
+        errorEl.addClass(className);
+        return false;
       } else {
-        nameInput.parent().removeClass("error");
+        errorEl.removeClass(className);
+        return true;
       }
+    }
+
+    function updatePropertyStepUI() {
+      var completedStep = true;
+      completedStep &= toggleSimpleInputError($("#nameInput"));
       var typeInput = $("#typeInput");
       if (typeInput.val() === "") {
-        completedPropertyStep = false;
+        completedStep = false;
         $("#typeInputError").removeClass("hidden");
       } else {
         $("#typeInputError").addClass("hidden");
       }
-      var priceInput = $("#priceInput");
-      if (priceInput.val() === "") {
-        completedPropertyStep = false;
-        priceInput.parent().addClass("error");
-      } else {
-        priceInput.parent().removeClass("error");
-      }
+      completedStep &= toggleSimpleInputError($("#priceInput"));
+
       var steps = $(".step");
-      if (completedPropertyStep) {
+      if (completedStep) {
         steps.eq(0).addClass("completed");
         steps.eq(1).removeClass("disabled");
       } else {
@@ -223,11 +258,31 @@
         steps.eq(1).addClass("disabled");
       }
     }
+
+    function updateFinancingStepUI() {
+      var completedStep = true;
+
+      completedStep &= toggleSimpleInputError($("#downpaymentInput"));
+      completedStep &= toggleSimpleInputError($("#interestInput"));
+      completedStep &= toggleSimpleInputError($("#durationInput"));
+
+      var steps = $(".step");
+      if (completedStep) {
+        steps.eq(1).addClass("completed");
+        steps.eq(2).removeClass("disabled");
+      } else {
+        steps.eq(1).removeClass("completed");
+        steps.eq(2).addClass("disabled");
+      }
+    }
+
     function updateUI() {
       // TODO: Determine the opened tab to only update the right one.
 
       // TODO: Should I use the event.target to narrow my computations?
       updatePropertyStepUI();
+      updateFinancingStepUI();
+
     }
 
     function preparePage() {
@@ -236,14 +291,23 @@
       $(".ui.dropdown").dropdown();
 
       // Give focus to the first element.
+      // TODO: Is that correct in general?
       $("#nameInput").focus();
 
       // TODO: We should use change when we can as it prevents
       // UI churn due to too many events.
       $("input").on("input", updateUI);
 
+      // Combo boxes only send a "change" event.
+      $("#typeInput").on("change", updateUI);
+
+      $(".step").click(selectStep);
+
+      // Sync the selected step.
+      updateSelectedStep(0);
+
       // TODO: Remove this cheat for developing.
-      $("#cheat").click(function() { populateDataFromServer(generateFakeData()) });
+      $("#cheat").click(function(e) { populateDataFromServer(generateFakeData()); updateSelectedStep(2); });
     }
 
     window.addEventListener("load", preparePage, false);
@@ -284,70 +348,133 @@
   </div>
 </div>
 <div class="ui tab active">
-<div class="ui segments">
-  <div class="ui horizontal segments">
-    <table class="ui very basic collapsing table">
-    <tr>
-      <td>Report name</td>
-      <td>
-        <div class="ui input error focus">
-          <input type="text" id="nameInput">
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <td>Property type</td>
-      <td>
-        <div class="ui selection dropdown">
-          <input type="hidden" id="typeInput">
-          <i class="dropdown icon"></i>
-          <div class="default text">Select one</div>
-          <div class="menu">
-            <div class="item" data-value="residential">Residential</div>
-            <div class="item" data-value="commercial">Commercial</div>
+  <div class="ui segments">
+    <div class="ui horizontal segments">
+      <table class="ui very basic collapsing table">
+      <tr>
+        <td>Report name</td>
+        <td>
+          <div class="ui input error focus">
+            <input type="text" id="nameInput">
           </div>
-        </div>
-        <div class="ui left pointing red basic label" id="typeInputError">
-          Please choose a value
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <td>Price</td>
-      <td>
-        <div class="ui input error focus">
-          <input type="number" id="priceInput">
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <td>Address</td>
-      <td>
-        <div class="ui input focus">
-          <input type="text" id="addressInput">
-        </div>
-      </td>
-    </tr>
-    <tr>
-      <td>zip</td>
-      <td>
-        <div class="ui input focus">
-          <!-- TODO: Validate! -->
-          <input type="number" id="zipInput">
-        </div>
-      </td>
-    </tr>
-    </table>
+        </td>
+      </tr>
+      <tr>
+        <td>Property type</td>
+        <td>
+          <div class="ui selection dropdown">
+            <input type="hidden" id="typeInput">
+            <i class="dropdown icon"></i>
+            <div class="default text">Select one</div>
+            <div class="menu">
+              <div class="item" data-value="residential">Residential</div>
+              <div class="item" data-value="commercial">Commercial</div>
+            </div>
+          </div>
+          <div class="ui left pointing red basic label" id="typeInputError">
+            Please choose a value
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>Price</td>
+        <td>
+          <div class="ui input error focus">
+            <input type="number" id="priceInput">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>Address</td>
+        <td>
+          <div class="ui input focus">
+            <input type="text" id="addressInput">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>zip</td>
+        <td>
+          <div class="ui input focus">
+            <!-- TODO: Validate! -->
+            <input type="number" id="zipInput">
+          </div>
+        </td>
+      </tr>
+      </table>
+    </div>
   </div>
 </div>
 <div class="ui tab">
-Financing
+  <div class="ui segments">
+    <div class="ui horizontal segments">
+      <table class="ui very basic collapsing table">
+      <tr>
+        <td>Downpayment (%)</td>
+        <td>
+          <div class="ui input error focus">
+            <!-- TODO: Validate or combo box or populate.-->
+            <!-- TODO: We should allow for an absolute number too. -->
+            <input type="number" id="downpaymentInput">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>Interest (%)</td>
+        <td>
+          <div class="ui input error focus">
+            <input type="text" id="interestInput">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <!-- TODO: Find a better name. -->
+        <td>Duration (years)</td>
+        <td>
+          <div class="ui input error focus">
+            <input type="text" id="durationInput">
+          </div>
+        </td>
+      </tr>
+      </table>
+    </div>
+  </div>
 </div>
 <div class="ui tab">
 Income and expenses
+<!--        "closingCosts": {
+          "amount": 15980,
+          "repairs": 10000,
+        },
+        "incomeStreams": {
+          // TODO: For PV analysis, we should probably allow for timed income streams.
+          "rent": 6150,
+          "other": 0,
+        },
+        "expenses": {
+          // TODO: Some of these values are based on GOI, some GSI, some price and some absolute.
+          "water": 0,
+          "electricity": 0,
+          "insurance": 233,
+          "RAP fee": 17,
+          "property tax": 899.42,
+          "business tax": 86,
+          "vacancy": .05,
+          "maintenance": .10,
+-->
 </div>
 <div class="ui tab">
 Future and taxes
+<!--        "future": {
+          "rentIncrease": 0.005,
+          "expenseIncrease": 0.03,
+          "appreciation": 0.02,
+        },
+        "tax": {
+          "bracket": 0.33,
+          "percentValueOfImprovement": .75,
+        }
+-->
 </div>
 <div class="ui tab">
   <!-- TODO: Add DSCR, GRM -->
