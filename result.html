@@ -167,10 +167,56 @@
       // TODO: Set up IRR and PV analysis.
     }
 
+    function updatePropertyStepUI() {
+      var completedPropertyStep = true;
+      var nameInput = $("#nameInput");
+      if (nameInput.val() === "") {
+        nameInput.parent().addClass("error");
+        completedPropertyStep = false;
+      } else {
+        nameInput.parent().removeClass("error");
+      }
+      var typeInput = $("#typeInput");
+      if (typeInput.val() === "") {
+        completedPropertyStep = false;
+        $("#typeInputError").removeClass("hidden");
+      } else {
+        $("#typeInputError").addClass("hidden");
+      }
+      var priceInput = $("#priceInput");
+      if (priceInput.val() === "") {
+        completedPropertyStep = false;
+        priceInput.parent().addClass("error");
+      } else {
+        priceInput.parent().removeClass("error");
+      }
+      var steps = $(".step");
+      if (completedPropertyStep) {
+        steps.eq(0).addClass("completed");
+        steps.eq(1).removeClass("disabled");
+      } else {
+        steps.eq(0).removeClass("completed");
+        steps.eq(1).addClass("disabled");
+      }
+    }
+    function updateUI() {
+      // TODO: Determine the opened tab to only update the right one.
+
+      // TODO: Should I use the event.target to narrow my computations?
+      updatePropertyStepUI();
+    }
+
     function preparePage() {
-      // This function handles generating the report page.
       // Initialize semantics.
       $(".ui.accordion").accordion();
+      $(".ui.dropdown").dropdown();
+
+      // Give focus to the first element.
+      $("#nameInput").focus();
+
+      // TODO: We should use change when we can as it prevents
+      // UI churn due to too many events.
+      $("input").on("input", updateUI);
 
       // TODO: Plug the real data.
       populateData(generateFakeData());
@@ -181,110 +227,206 @@
   </script>
 </head>
 <body>
-<!-- TODO: Add DSCR, GRM -->
-<!-- TODO: Add cash flow per unit per month -->
-<!-- TODO: Add total interest? Total cost? Amortization table? -->
-<!-- TODO: Add Debt service 3m, 6m? -->
-<div class="ui segment accordion">
-  <div class="ui title">
-    <div class="ui header">
-      <i class="dropdown icon"></i>
-      Property name: <span id="name"></span>
+
+<div class="ui ordered steps">
+  <div class="active step">
+    <div class="content">
+        <div class="title">Property details</div>
     </div>
-    <table class="ui very basic collapsing table">
-      <tr><td>Property price</td><td> <span id="price"></span></td></tr>
-      <tr><td>CapRate</td><td> <span id="caprate"></span></td></tr>
-    </table>
   </div>
-  <div class="content">
+  <div class="disabled step">
+    <div class="content">
+        <div class="title">Financing</div>
+    </div>
+  </div>
+  <div class="disabled step">
+    <div class="content">
+        <div class="title">Income and Expenses</div>
+    </div>
+  </div>
+  <div class="disabled step">
+    <div class="content">
+        <div class="title">Future and taxes</div>
+    </div>
+  </div>
+  <div class="disabled step">
+    <div class="content">
+        <div class="title">Result</div>
+    </div>
+  </div>
+</div>
+<div class="ui tab active">
+<div class="ui segments">
+  <div class="ui horizontal segments">
     <table class="ui very basic collapsing table">
-      <tr><td>Property address</td><td><span id="address"></span></td></tr>
-      <tr><td>ZIP</td><td><span id="zip"></span></td></tr>
+    <tr>
+      <td>Report name</td>
+      <td>
+        <div class="ui input error focus">
+          <input type="text" id="nameInput">
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>Property type</td>
+      <td>
+        <div class="ui selection dropdown">
+          <input type="hidden" id="typeInput">
+          <i class="dropdown icon"></i>
+          <div class="default text">Select one</div>
+          <div class="menu">
+            <div class="item" data-value="residential">Residential</div>
+            <div class="item" data-value="commercial">Commercial</div>
+          </div>
+        </div>
+        <div class="ui left pointing red basic label" id="typeInputError">
+          Please choose a value
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>Price</td>
+      <td>
+        <div class="ui input error focus">
+          <input type="number" id="priceInput">
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>Address</td>
+      <td>
+        <div class="ui input focus">
+          <input type="text" id="addressInput">
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td>zip</td>
+      <td>
+        <div class="ui input focus">
+          <!-- TODO: Validate! -->
+          <input type="number" id="zipInput">
+        </div>
+      </td>
+    </tr>
     </table>
   </div>
 </div>
-<div class="ui segments context">
-  <div class="ui blue segment">
-    <div class="ui header">
-      Performance metrics
-    </div>
-    <table class="ui very basic collapsing table">
-      <tr><td>Cashflow return on equity</td><td> <span id="cashflowROE"></span></td></tr>
-      <tr><td>Appreciation return on equity</td><td> <span id="appreciationROE"></span></td></tr>
-      <tr><td>Equity build return on equity</td><td> <span id="equityBuildROE"></span></td></tr>
-      <tr><td>Tax return on equity</td><td> <span id="taxROE"></span></td></tr>
-      <tr><td>Total return on equity</td><td> <span id="totalROE"></span></td></tr>
-    </table>
-  </div>
-
-  <div class="ui blue segment">
-    <div class="ui header">Expenses</div>
-    <!-- TODO: Add a numeric breakdown for all the expenses -->
-    <div id="piechart" style="width:800px; height:500px"></div>
-  </div>
-
-  <!-- NOT REFACTORED AFTER THIS POINT -->
-  <div class="ui blue segment">
-    <table class="ui very basic collapsing table">
-      <tr><td>Closing costs</td><td> <span id="closingCosts"></span></td></tr>
-      <tr><td>Repairs</td><td><span id="repairs"></span></td></tr>
-      <tr><td>Cash outlay</td><td><span id="cashOutlay"></span></td></tr>
-    </table>
-  </div>
-
-  <div class="ui blue segment">
-     <table class="ui very basic collapsing table">
-      <tr><td>GOI</td><td> <span id="goi"></td></tr>
-      <tr><td>Vacancy</td><td> <span id="vacancy"></td></tr>
-      <tr><td>Expenses</td><td> <span id="expenses"></td></tr>
-      <tr><td>NOI</td><td> <span id="noi"></td></tr>
-      <tr><td>Debt Service</td><td> <span id="debtService"></td></tr>
-      <tr><td>Cashflow</td><td> <span id="cashflow"></td></tr>
-    </table>
-  </div>
-  <div class="ui blue segment">
-    <table class="ui very basic collapsing table">
-    <thead>
-      <tr><td colspan="2"><div class="ui sub header title">Financing</div></td></tr>
-    </thead>
-    <tbody>
-      <tr><td>Loan amount</td><td> <span id="loanAmount"></td></tr>
-      <tr><td>Interest rate</td><td> <span id="interest"></td></tr>
-      <tr><td>Length (years)</td><td> <span id="lengthYears"></td></tr>
-      <tr><td>Mortgage payment</td><td> <span id="monthlyPayment"></td></tr>
-    </tbody>
-    </table>
-  </div>
+<div class="ui tab">
+Financing
 </div>
-<div class="ui accordion">
-  <div class="title">
-    <i class="dropdown icon"></i>
-    Yearly projections
-  </div>
-  <div class="content">
-    <p class="transition hidden">
-      <!-- TODO: This doesn't do the right thing in narrow viewports.
-           Changing to vertical segments could help maybe? -->
-      <table id="projections" class="ui very basic collapsing table">
+<div class="ui tab">
+Income and expenses
+</div>
+<div class="ui tab">
+Future and taxes
+</div>
+<div class="ui tab">
+  <!-- TODO: Add DSCR, GRM -->
+  <!-- TODO: Add cash flow per unit per month -->
+  <!-- TODO: Add total interest? Total cost? Amortization table? -->
+  <!-- TODO: Add Debt service 3m, 6m? -->
+  <div class="ui segment accordion">
+    <div class="ui title">
+      <div class="ui header">
+        <i class="dropdown icon"></i>
+        Property name: <span id="name"></span>
+      </div>
+      <table class="ui very basic collapsing table">
+        <tr><td>Property price</td><td> <span id="price"></span></td></tr>
+        <tr><td>CapRate</td><td> <span id="caprate"></span></td></tr>
       </table>
-    </p>
+    </div>
+    <div class="content">
+      <table class="ui very basic collapsing table">
+        <tr><td>Property address</td><td><span id="address"></span></td></tr>
+        <tr><td>ZIP</td><td><span id="zip"></span></td></tr>
+      </table>
+    </div>
   </div>
-</div>
-<div class="ui accordion">
-  <div class="title">
-    <i class="dropdown icon"></i>
-    IRR
+  <div class="ui segments context">
+    <div class="ui blue segment">
+      <div class="ui header">
+        Performance metrics
+      </div>
+      <table class="ui very basic collapsing table">
+        <tr><td>Cashflow return on equity</td><td> <span id="cashflowROE"></span></td></tr>
+        <tr><td>Appreciation return on equity</td><td> <span id="appreciationROE"></span></td></tr>
+        <tr><td>Equity build return on equity</td><td> <span id="equityBuildROE"></span></td></tr>
+        <tr><td>Tax return on equity</td><td> <span id="taxROE"></span></td></tr>
+        <tr><td>Total return on equity</td><td> <span id="totalROE"></span></td></tr>
+      </table>
+    </div>
+
+    <div class="ui blue segment">
+      <div class="ui header">Expenses</div>
+      <!-- TODO: Add a numeric breakdown for all the expenses -->
+      <div id="piechart" style="width:800px; height:500px"></div>
+    </div>
+
+    <!-- NOT REFACTORED AFTER THIS POINT -->
+    <div class="ui blue segment">
+      <table class="ui very basic collapsing table">
+        <tr><td>Closing costs</td><td> <span id="closingCosts"></span></td></tr>
+        <tr><td>Repairs</td><td><span id="repairs"></span></td></tr>
+        <tr><td>Cash outlay</td><td><span id="cashOutlay"></span></td></tr>
+      </table>
+    </div>
+
+    <div class="ui blue segment">
+      <table class="ui very basic collapsing table">
+        <tr><td>GOI</td><td> <span id="goi"></td></tr>
+        <tr><td>Vacancy</td><td> <span id="vacancy"></td></tr>
+        <tr><td>Expenses</td><td> <span id="expenses"></td></tr>
+        <tr><td>NOI</td><td> <span id="noi"></td></tr>
+        <tr><td>Debt Service</td><td> <span id="debtService"></td></tr>
+        <tr><td>Cashflow</td><td> <span id="cashflow"></td></tr>
+      </table>
+    </div>
+    <div class="ui blue segment">
+      <table class="ui very basic collapsing table">
+      <thead>
+        <tr><td colspan="2"><div class="ui sub header title">Financing</div></td></tr>
+      </thead>
+      <tbody>
+        <tr><td>Loan amount</td><td> <span id="loanAmount"></td></tr>
+        <tr><td>Interest rate</td><td> <span id="interest"></td></tr>
+        <tr><td>Length (years)</td><td> <span id="lengthYears"></td></tr>
+        <tr><td>Mortgage payment</td><td> <span id="monthlyPayment"></td></tr>
+      </tbody>
+      </table>
+    </div>
   </div>
-  <div class="content">
-    <p class="transition hidden">TODO: Implement.</p>
+  <div class="ui accordion">
+    <div class="title">
+      <i class="dropdown icon"></i>
+      Yearly projections
+    </div>
+    <div class="content">
+      <p class="transition hidden">
+        <!-- TODO: This doesn't do the right thing in narrow viewports.
+            Changing to vertical segments could help maybe? -->
+        <table id="projections" class="ui very basic collapsing table">
+        </table>
+      </p>
+    </div>
   </div>
-</div>
-<div class="ui accordion">
-  <div class="title">
-    <i class="dropdown icon"></i>
-    Present value Analysis
+  <div class="ui accordion">
+    <div class="title">
+      <i class="dropdown icon"></i>
+      IRR
+    </div>
+    <div class="content">
+      <p class="transition hidden">TODO: Implement.</p>
+    </div>
   </div>
-  <div class="content">
-    <p class="transition hidden">TODO: Implement.</p>
+  <div class="ui accordion">
+    <div class="title">
+      <i class="dropdown icon"></i>
+      Present value Analysis
+    </div>
+    <div class="content">
+      <p class="transition hidden">TODO: Implement.</p>
+    </div>
   </div>
 </div>
