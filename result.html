@@ -64,7 +64,31 @@
       };
     }
 
-    function populateData(info) {
+    function populateDataFromServer(info) {
+      // TODO: We should probably populate the report later.
+
+      // Step 1: Property.
+      $("#nameInput").val(info.property.name);
+      $("#typeInput").val(info.property.type);
+      $("#priceInput").val(info.property.price);
+      if (info.property.address) {
+        $("#addressInput").val(info.property.address);
+      }
+      if (info.property.zip) {
+        $("#zipInput").val(info.property.zip);
+      }
+
+      // Step 2: Financing.
+      // Step 3: Income and expenses.
+      // Step 4: Future and taxes.
+      // Step 5: Report.
+      populateReport(info);
+
+      // Manually update the UI as this doesn't trigger change events.
+      updateUI();
+    }
+
+    function populateReport(info) {
       var financials = computeFinancials(info);
       // TODO: Support other locales and currencies?
       var currencyFormatter = new Intl.NumberFormat('en-US', {
@@ -218,8 +242,8 @@
       // UI churn due to too many events.
       $("input").on("input", updateUI);
 
-      // TODO: Plug the real data.
-      populateData(generateFakeData());
+      // TODO: Remove this cheat for developing.
+      $("#cheat").click(function() { populateDataFromServer(generateFakeData()) });
     }
 
     window.addEventListener("load", preparePage, false);
@@ -227,6 +251,10 @@
   </script>
 </head>
 <body>
+
+<button class="ui primary button" id="cheat">
+  Cheat
+</button>
 
 <div class="ui ordered steps">
   <div class="active step">
