@@ -60,6 +60,7 @@
         },
         "closingCosts": {
           "amount": 15980,
+          // TODO: Improvements.
           "repairs": 10000,
         },
         "incomeStreams": {
@@ -73,8 +74,8 @@
           "electricity": 0,
           "insurance": 233,
           "RAP fee": 17,
-          "property tax": 899.42,
-          "business tax": 86,
+          "propertyTax": 899.42,
+          "businessTax": 86,
           "vacancy": .05,
           "maintenance": .10,
         },
@@ -97,12 +98,8 @@
       $("#nameInput").val(info.property.name);
       $("#typeInput").val(info.property.type);
       $("#priceInput").val(info.property.price);
-      if (info.property.address) {
-        $("#addressInput").val(info.property.address);
-      }
-      if (info.property.zip) {
-        $("#zipInput").val(info.property.zip);
-      }
+      $("#addressInput").val(info.property.address);
+      $("#zipInput").val(info.property.zip);
 
       // Step 2: Financing.
       $("#downpaymentInput").val(info.mortgage.downpayment * 100);
@@ -110,6 +107,22 @@
       $("#durationInput").val(info.mortgage.lengthYears);
 
       // Step 3: Income and expenses.
+      $("#closingCostsInput").val(info.closingCosts.amount);
+      $("#repairsCostsInput").val(info.closingCosts.repairs);
+
+      $("#rentsInput").val(info.incomeStreams.rent);
+      $("#otherIncomeInput").val(info.incomeStreams.other);
+
+      $("#waterInput").val(info.expenses.water);
+      $("#electricityInput").val(info.expenses.electricity);
+      $("#garbageInput").val(info.expenses.garbage);
+      $("#insuranceInput").val(info.expenses.insurance);
+      $("#propertyTaxInput").val(info.expenses.propertyTax);
+      $("#othersInput").val(info.expenses.others);
+
+      $("#vacancyInput").val(info.expenses.vacancy * 100);
+      $("#maintenanceInput").val(info.expenses.maintenance * 100);
+
       // Step 4: Future and taxes.
       // Step 5: Report.
       populateReport(info);
@@ -275,6 +288,26 @@
         steps.eq(2).addClass("disabled");
       }
     }
+    function updateIncomeExpensesStepUI() {
+      var completedStep = true;
+      completedStep &= toggleSimpleInputError($("#closingCostsInput"));
+      completedStep &= toggleSimpleInputError($("#rentsInput"));
+      completedStep &= toggleSimpleInputError($("#insuranceInput"));
+      completedStep &= toggleSimpleInputError($("#propertyTaxInput"));
+      completedStep &= toggleSimpleInputError($("#vacancyInput"));
+      completedStep &= toggleSimpleInputError($("#maintenanceInput"));
+
+      var steps = $(".step");
+      if (completedStep) {
+        steps.eq(2).addClass("completed");
+        steps.eq(3).removeClass("disabled");
+        steps.eq(4).removeClass("disabled");
+      } else {
+        steps.eq(2).removeClass("completed");
+        steps.eq(3).addClass("disabled");
+        steps.eq(4).addClass("disabled");
+      }
+    }
 
     function updateUI() {
       // TODO: Determine the opened tab to only update the right one.
@@ -282,7 +315,7 @@
       // TODO: Should I use the event.target to narrow my computations?
       updatePropertyStepUI();
       updateFinancingStepUI();
-
+      updateIncomeExpensesStepUI();
     }
 
     function preparePage() {
@@ -349,8 +382,7 @@
 </div>
 <div class="ui tab active">
   <div class="ui segments">
-    <div class="ui horizontal segments">
-      <table class="ui very basic collapsing table">
+    <table class="ui very basic collapsing table">
       <tr>
         <td>Report name</td>
         <td>
@@ -401,14 +433,14 @@
           </div>
         </td>
       </tr>
-      </table>
-    </div>
+      <!-- TODO: Missing # of units. -->
+      <!-- TODO: Missing SqFt (opt). -->
+    </table>
   </div>
 </div>
 <div class="ui tab">
   <div class="ui segments">
-    <div class="ui horizontal segments">
-      <table class="ui very basic collapsing table">
+    <table class="ui very basic collapsing table">
       <tr>
         <td>Downpayment (%)</td>
         <td>
@@ -436,32 +468,127 @@
           </div>
         </td>
       </tr>
-      </table>
-    </div>
+    </table>
   </div>
 </div>
 <div class="ui tab">
-Income and expenses
-<!--        "closingCosts": {
-          "amount": 15980,
-          "repairs": 10000,
-        },
-        "incomeStreams": {
-          // TODO: For PV analysis, we should probably allow for timed income streams.
-          "rent": 6150,
-          "other": 0,
-        },
-        "expenses": {
-          // TODO: Some of these values are based on GOI, some GSI, some price and some absolute.
-          "water": 0,
-          "electricity": 0,
-          "insurance": 233,
-          "RAP fee": 17,
-          "property tax": 899.42,
-          "business tax": 86,
-          "vacancy": .05,
-          "maintenance": .10,
--->
+  <div class="ui segments">
+    <div class="ui segment">
+      <table class="ui very basic collapsing table">
+      <tr>
+        <!-- TODO: Default closing costs! -->
+        <td>Closing costs</td>
+        <td>
+          <div class="ui input error focus">
+            <input type="number" id="closingCostsInput">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>Repairs</td>
+        <td>
+          <div class="ui input focus">
+            <input type="number" id="repairsCostsInput">
+          </div>
+        </td>
+      </tr>
+      </table>
+    </div>
+    <div class="ui blue segment">
+      <table class="ui very basic collapsing table">
+      <tr>
+        <!-- TODO: Itemize and account for time. -->
+        <td>Rents</td>
+        <td>
+          <div class="ui input error focus">
+            <input type="number" id="rentsInput">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>Other income</td>
+        <td>
+          <div class="ui input focus">
+            <input type="number" id="otherIncomeInput">
+          </div>
+        </td>
+      </tr>
+      </table>
+    </div>
+    <div class="ui blue segment">
+      <table class="ui very basic collapsing table">
+      <tr>
+        <td>Water</td>
+        <td>
+          <div class="ui input focus">
+            <input type="number" id="waterInput">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>Electricity</td>
+        <td>
+          <div class="ui input focus">
+            <input type="number" id="electricityInput">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>Garbage</td>
+        <td>
+          <div class="ui input focus">
+            <input type="number" id="garbageInput">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>Insurance</td>
+        <td>
+          <div class="ui input error focus">
+            <input type="number" id="insuranceInput">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>Property tax</td>
+        <td>
+          <div class="ui input error focus">
+            <input type="number" id="propertyTaxInput">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <!-- TODO: Remove others and itemize! -->
+        <td>Others</td>
+        <td>
+          <div class="ui input focus">
+            <input type="number" id="othersInput">
+          </div>
+        </td>
+      </tr>
+      </table>
+    </div>
+    <div class="ui blue segment">
+      <table class="ui very basic collapsing table">
+      <tr>
+        <td>Vacancy (%)</td>
+        <td>
+          <div class="ui input error focus">
+            <input type="number" id="vacancyInput">
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td>Maintenance (%)</td>
+        <td>
+          <div class="ui input error focus">
+            <input type="number" id="maintenanceInput">
+          </div>
+        </td>
+      </tr>
+      </table>
+    </div>
+  </div>
 </div>
 <div class="ui tab">
 Future and taxes
