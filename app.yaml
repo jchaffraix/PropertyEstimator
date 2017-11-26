@@ -3,9 +3,6 @@ api_version: 1
 threadsafe: true
 
 handlers:
-- url: /bower_components
-  static_dir: bower_components
-  secure: always
 - url: /semantic
   static_dir: semantic
   secure: always

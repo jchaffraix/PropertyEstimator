@@ -1,12 +1,29 @@
 <!DOCTYPE html>
 <head>
-  <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
-  <link rel="import" href="bower_components/paper-fab/paper-fab.html">
-  <link rel="import" href="bower_components/iron-icons/iron-icons.html">
-  <link rel="import" href="bower_components/polymer/polymer.html">
-  <link rel="import" href="resources/style.html">
+  <link rel="stylesheet" type="text/css" href="semantic/dist/semantic.min.css">
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js"
+      integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+      crossorigin="anonymous"></script>
+  <script src="semantic/dist/semantic.min.js"></script>
   <title>Property estimator</title>
+  <script>
+    function registerListener() {
+      var buttons = $("button");
+      buttons.eq(0).click(function() { window.location.href = "/report"; });
+      buttons.eq(1).click(function() {
+        console.log("Implement select / deselect all logic!");
+      });
+      buttons.eq(1).click(function() {
+        console.log("Implement removal logic!");
+      });
+    }
+    window.addEventListener("load", registerListener, false);
+  </script>
 </head>
+<div class="ui top attached menu sticky">
+  <button class="ui primary button">Add</button>
+  <button class="ui disabled button">Select all</button>
+  <button class="ui disabled button">Remove</button>
+</div>
 <div>TODO: Store and retrieve assessment.</div>
 <div>TODO: First time explanation + cookie.</div>
-<a href="/new"><paper-fab icon="add"></paper-fab></a>
