@@ -144,6 +144,10 @@
       // Nothing to do, the report is generated as part of the UI.
 
       // Manually update the UI as this doesn't trigger change events.
+      // We also need to update the dropdowns as their values was changed
+      // without semantics knowning about it.
+      $(".ui.dropdown").dropdown();
+
       updateUI();
     }
 
