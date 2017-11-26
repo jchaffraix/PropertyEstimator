@@ -73,9 +73,9 @@
           "water": 0,
           "electricity": 0,
           "insurance": 233,
-          "RAP fee": 17,
+          // TODO: RAP fee + business tax.
           "propertyTax": 899.42,
-          "businessTax": 86,
+          "others": 103,
           "vacancy": .05,
           "maintenance": .10,
         },
@@ -91,8 +91,17 @@
       };
     }
 
-    function populateDataFromServer(info) {
-      // TODO: We should probably populate the report later.
+    // TODO: We should have some tests for this and generateJSONFromUI.
+    // To ensure that we can marshal/unmarshal objects correctly.
+    function populateUIFromJSON(info) {
+      /* This function is used to populate the UI
+         off of a JSON object (exchanged with our
+         server).
+
+         Any modification here should be reflected in
+         generateJSONFromUI to send the information
+         back correctly.
+      */
 
       // Step 1: Property.
       $("#nameInput").val(info.property.name);
@@ -132,10 +141,71 @@
       $("#percentValueOfImprovementInput").val(info.tax.percentValueOfImprovement * 100);
 
       // Step 5: Report.
-      populateReport(info);
+      // Nothing to do, the report is generated as part of the UI.
 
       // Manually update the UI as this doesn't trigger change events.
       updateUI();
+    }
+
+    function generateJSONFromUI(info) {
+      /* This function generates a JSON object
+         from the UI elements. The purpose is
+         to generate the report and send this
+         object to the server for archival.
+
+         Any modification here should be reflected in
+         populateUIFromJSON so that the server stores
+         the new information.
+      */
+
+      var info = {};
+      // Step 1: Property.
+      info.property = {};
+      // TODO: We are setting empty fields on the object.
+      // It should be harmless though.
+      info.property.name = $("#nameInput").val();
+      info.property.type = $("#typeInput").val();
+      info.property.price = +$("#priceInput").val();
+      info.property.address = $("#addressInput").val();
+      info.property.zip = +$("#zipInput").val();
+
+      // Step 2: Financing.
+      info.mortgage = {};
+      info.mortgage.downpayment = $("#downpaymentInput").val() / 100;
+      info.mortgage.interest = $("#interestInput").val() / 100;
+      info.mortgage.lengthYears = +$("#durationInput").val();
+
+      // Step 3: Income and expenses.
+      info.closingCosts = {};
+      info.closingCosts.amount = +$("#closingCostsInput").val();
+      info.closingCosts.repairs = +$("#repairsCostsInput").val();
+
+      info.incomeStreams = {};
+      info.incomeStreams.rent = +$("#rentsInput").val();
+      info.incomeStreams.other = +$("#otherIncomeInput").val();
+
+      info.expenses = {};
+      info.expenses.water = +$("#waterInput").val();
+      info.expenses.electricity = +$("#electricityInput").val();
+      info.expenses.garbage = +$("#garbageInput").val();
+      info.expenses.insurance = +$("#insuranceInput").val();
+      info.expenses.propertyTax = +$("#propertyTaxInput").val();
+      info.expenses.others = +$("#othersInput").val();
+
+      info.expenses.vacancy = $("#vacancyInput").val() / 100;
+      info.expenses.maintenance = $("#maintenanceInput").val() / 100;
+
+      // Step 4: Future and taxes.
+      info.future = {};
+      info.future.rentIncrease = $("#rentIncreaseInput").val() / 100;
+      info.future.expenseIncrease = $("#expensesIncreaseInput").val()/ 100;
+      info.future.appreciation = $("#appreciationInput").val() / 100;
+
+      info.tax = {};
+      info.tax.bracket = $("#taxBracketInput").val() / 100;
+      info.tax.percentValueOfImprovement = $("#percentValueOfImprovementInput").val()/ 100;
+
+      return info;
     }
 
     function populateReport(info) {
@@ -152,16 +222,16 @@
       });
 
       // Set up the common values.
-      $("#name").replaceWith(info.property.name);
-      $("#price").replaceWith(currencyFormatter.format(info.property.price));
-      $("#closingCosts").replaceWith(currencyFormatter.format(info.closingCosts.amount));
-      $("#repairs").replaceWith(currencyFormatter.format(info.closingCosts.repairs));
-      $("#cashOutlay").replaceWith(currencyFormatter.format(financials.equity[0]));
+      $("#name").text(info.property.name);
+      $("#price").text(currencyFormatter.format(info.property.price));
+      $("#closingCosts").text(currencyFormatter.format(info.closingCosts.amount));
+      $("#repairs").text(currencyFormatter.format(info.closingCosts.repairs));
+      $("#cashOutlay").text(currencyFormatter.format(financials.equity[0]));
 
-      $("#goi").replaceWith(currencyFormatter.format(financials.monthlyGrossIncome[0]));
-      $("#vacancy").replaceWith(currencyFormatter.format(financials.vacancies[0]));
+      $("#goi").text(currencyFormatter.format(financials.monthlyGrossIncome[0]));
+      $("#vacancy").text(currencyFormatter.format(financials.vacancies[0]));
 
-      $("#expenses").replaceWith(currencyFormatter.format(financials.monthlyOperatingExpenses[0]));
+      $("#expenses").text(currencyFormatter.format(financials.monthlyOperatingExpenses[0]));
 
       google.charts.setOnLoadCallback(function() {
         var data = google.visualization.arrayToDataTable(financials.expensesForChart);
@@ -174,29 +244,29 @@
         chart.draw(data, options);
       });
 
-      $("#noi").replaceWith(currencyFormatter.format(financials.noi[0]));
-      $("#caprate").replaceWith(percentFormatter.format(financials.noi[0] / info.property.price));
-      $("#debtService").replaceWith(currencyFormatter.format(financials.monthlyDebtService));
-      $("#cashflow").replaceWith(currencyFormatter.format(financials.cashflow[0] / 12));
+      $("#noi").text(currencyFormatter.format(financials.noi[0]));
+      $("#caprate").text(percentFormatter.format(financials.noi[0] / info.property.price));
+      $("#debtService").text(currencyFormatter.format(financials.monthlyDebtService));
+      $("#cashflow").text(currencyFormatter.format(financials.cashflow[0] / 12));
 
       // Set up the property details tab.
-      $("#address").replaceWith(info.property.address);
-      $("#zip").replaceWith(info.property.zip);
+      $("#address").text(info.property.address);
+      $("#zip").text(info.property.zip);
 
       // Set up the financing tab.
       // TODO: Allow multiple loans.
       // TODO: We should allow percentage and absolute amount.
-      $("#loanAmount").replaceWith(currencyFormatter.format(financials.loanAmount[0]));
-      $("#interest").replaceWith(percentFormatter.format(info.mortgage.interest));
-      $("#lengthYears").replaceWith(info.mortgage.lengthYears);
-      $("#monthlyPayment").replaceWith(currencyFormatter.format(financials.monthlyDebtService));
+      $("#loanAmount").text(currencyFormatter.format(financials.loanAmount[0]));
+      $("#interest").text(percentFormatter.format(info.mortgage.interest));
+      $("#lengthYears").text(info.mortgage.lengthYears);
+      $("#monthlyPayment").text(currencyFormatter.format(financials.monthlyDebtService));
 
       // Performance metrics
-      $("#cashflowROE").replaceWith(percentFormatter.format(financials.cashflowROE[0]));
-      $("#appreciationROE").replaceWith(percentFormatter.format(financials.appreciationROE[0]));
-      $("#equityBuildROE").replaceWith(percentFormatter.format(financials.loanReductionROE[0]));
-      $("#taxROE").replaceWith(percentFormatter.format(financials.taxROE[0]));
-      $("#totalROE").replaceWith(percentFormatter.format(financials.totalROE[0]));
+      $("#cashflowROE").text(percentFormatter.format(financials.cashflowROE[0]));
+      $("#appreciationROE").text(percentFormatter.format(financials.appreciationROE[0]));
+      $("#equityBuildROE").text(percentFormatter.format(financials.loanReductionROE[0]));
+      $("#taxROE").text(percentFormatter.format(financials.taxROE[0]));
+      $("#totalROE").text(percentFormatter.format(financials.totalROE[0]));
 
       // TODO: This should be templatized and automated.
       // Populate the projections table.
@@ -234,9 +304,10 @@
         }
         tbody.appendChild(tr);
       }
-      var projectionsTable = $("#projections").get()[0];
-      projectionsTable.appendChild(thead);
-      projectionsTable.appendChild(tbody);
+      var projections = $("#projections");
+      projections.empty();
+      projections.append(thead);
+      projections.append(tbody);
 
       // TODO: Set up IRR and PV analysis.
     }
@@ -323,6 +394,8 @@
       updatePropertyStepUI();
       updateFinancingStepUI();
       updateIncomeExpensesStepUI();
+
+      populateReport(generateJSONFromUI());
     }
 
     function preparePage() {
@@ -347,7 +420,7 @@
       updateSelectedStep(0);
 
       // TODO: Remove this cheat for developing.
-      $("#cheat").click(function(e) { populateDataFromServer(generateFakeData()); updateSelectedStep(3); });
+      $("#cheat").click(function(e) { populateUIFromJSON(generateFakeData()); updateSelectedStep(4); });
     }
 
     window.addEventListener("load", preparePage, false);
@@ -376,7 +449,7 @@
         <div class="title">Income and Expenses</div>
     </div>
   </div>
-  <div class="disabled step">
+  <div class="disabled step completed">
     <div class="content">
         <div class="title">Future and taxes</div>
     </div>
@@ -735,8 +808,7 @@ Future and taxes
       <p class="transition hidden">
         <!-- TODO: This doesn't do the right thing in narrow viewports.
             Changing to vertical segments could help maybe? -->
-        <table id="projections" class="ui very basic collapsing table">
-        </table>
+        <table id="projections" class="ui very basic collapsing table"></table>
       </p>
     </div>
   </div>
