@@ -124,6 +124,13 @@
       $("#maintenanceInput").val(info.expenses.maintenance * 100);
 
       // Step 4: Future and taxes.
+      $("#rentIncreaseInput").val(info.future.rentIncrease * 100);
+      $("#expensesIncreaseInput").val(info.future.expenseIncrease * 100);
+      $("#appreciationInput").val(info.future.appreciation * 100);
+
+      $("#taxBracketInput").val(info.tax.bracket * 100);
+      $("#percentValueOfImprovementInput").val(info.tax.percentValueOfImprovement * 100);
+
       // Step 5: Report.
       populateReport(info);
 
@@ -340,7 +347,7 @@
       updateSelectedStep(0);
 
       // TODO: Remove this cheat for developing.
-      $("#cheat").click(function(e) { populateDataFromServer(generateFakeData()); updateSelectedStep(2); });
+      $("#cheat").click(function(e) { populateDataFromServer(generateFakeData()); updateSelectedStep(3); });
     }
 
     window.addEventListener("load", preparePage, false);
@@ -592,16 +599,56 @@
 </div>
 <div class="ui tab">
 Future and taxes
-<!--        "future": {
-          "rentIncrease": 0.005,
-          "expenseIncrease": 0.03,
-          "appreciation": 0.02,
-        },
-        "tax": {
-          "bracket": 0.33,
-          "percentValueOfImprovement": .75,
-        }
--->
+  <div class="ui segments">
+    <div class="ui segment">
+      <table class="ui very basic collapsing table">
+        <tr>
+          <td>Rent increase (%)</td>
+          <td>
+            <div class="ui input focus">
+              <input type="number" id="rentIncreaseInput">
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>Expenses increase (%)</td>
+          <td>
+            <div class="ui input focus">
+              <input type="number" id="expensesIncreaseInput">
+            </div>
+          </td>
+        </tr>
+          <td>Appreciation (%)</td>
+          <td>
+            <div class="ui input focus">
+              <input type="number" id="appreciationInput">
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <div class="ui blue segment">
+      <table class="ui very basic collapsing table">
+        <tr>
+          <td>Tax bracket (%)</td>
+          <td>
+            <div class="ui input focus">
+              <input type="number" id="taxBracketInput">
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <!-- TODO: Better term from the IRS. -->
+          <td>Percentage value of improvement (%)</td>
+          <td>
+            <div class="ui input focus">
+              <input type="number" id="percentValueOfImprovementInput">
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
 </div>
 <div class="ui tab">
   <!-- TODO: Add DSCR, GRM -->
