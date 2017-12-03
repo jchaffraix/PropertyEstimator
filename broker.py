@@ -107,6 +107,25 @@ class ReportPage(webapp2.RequestHandler):
           html += "<script>window.ownsReport = true;</script>"
     self.response.write(html)
 
+class AllUserReports(webapp2.RequestHandler):
+  def get(self):
+    user = users.get_current_user()
+    if not user:
+      self.response.status_int = 403
+      self.response.write("Not logged in.");
+      return
+
+    # We load the response and create a JSON object
+    # mapping names to urlsafe's key.
+    report_records = Report.get_for_user(user)
+    records_for_response = dict()
+    for report_record in report_records:
+      parsed_report = json.loads(report_record.report)
+      logging.info(parsed_report)
+      records_for_response[parsed_report["property"]["name"]] = report_record.key.urlsafe()
+    logging.info(records_for_response)
+    self.response.write(json.dumps(records_for_response))
+
 class ManageReport(webapp2.RequestHandler):
   def get(self):
     # We don't do any user checks when getting
@@ -149,6 +168,7 @@ class ManageReport(webapp2.RequestHandler):
 app = webapp2.WSGIApplication([
     ('/', DashboardPage),
     ('/report.*', ReportPage),
+    ('/all_user_reports', AllUserReports),
     ('/manage_report.*', ManageReport),
 # TODO: Should I switch to debug=False?
 ], debug=True)

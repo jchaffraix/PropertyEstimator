@@ -8,7 +8,7 @@
   <title>Property estimator</title>
   <script>
     function registerListener() {
-      var buttons = $("button");
+      var buttons = $(".ui.button");
       buttons.eq(0).click(function() { window.location.href = "/report"; });
       buttons.eq(1).click(function() {
         console.log("Implement select / deselect all logic!");
@@ -16,20 +16,74 @@
       buttons.eq(1).click(function() {
         console.log("Implement removal logic!");
       });
+      var loginFunction = function() {
+        var w = window.open("/login", "_blank");
+        var unloadSeen = 0;
+        w.addEventListener("unload", function() {
+          ++unloadSeen;
+          if (unloadSeen == 2) {
+            window.logged = true;
+            w.close();
+            buttons.eq(3).off("click", loginFunction);
+            loadExistingReports();
+          }
+        });
+      };
+      buttons.eq(3).click(loginFunction);
     }
-    window.addEventListener("load", registerListener, false);
+
+    function populateExistingReports(name_key_mapping) {
+      var items = [];
+      for (var report_name in name_key_mapping) {
+        var report_id = name_key_mapping[report_name];
+        // TODO: We should templatize and automate this.
+        // TODO: Add a checkbox for removal.
+        var item = $(document.createElement("div"));
+        item.addClass("ui");
+        item.addClass("item");
+
+        item.html('<a href="/report/' + report_id + '">' + report_name + '</a>')
+        items.push(item);
+      }
+      $("#reports").append(items);
+      $("#reports").transition("slide down");
+    }
+    function loadExistingReports() {
+      $("#existingReportsLoader").addClass("active");
+      jQuery.get("/all_user_reports", "", function(json_payload) {
+        populateExistingReports(JSON.parse(json_payload));
+      }, "text").fail(function(xhr) {
+        if (xhr.status == 403) {
+          // We need to be logged in.
+          $("#loginmessage").transition("slide down");
+          return;
+        }
+        console.log(xhr);
+      }).always(function() {
+        $("#existingReportsLoader").removeClass("active");
+      });
+    }
+    function preparePage() {
+      registerListener();
+      loadExistingReports();
+    }
+    window.addEventListener("load", preparePage, false);
   </script>
 </head>
-<div class="ui top attached menu sticky">
+<div class="ui menu">
   <button class="ui primary button">Add</button>
   <button class="ui disabled button">Select all</button>
   <button class="ui disabled button">Remove</button>
 </div>
-<div>TODO: Store and retrieve assessment.</div>
+<div class="ui loader" id="existingReportsLoader"></div>
+<div class="ui message transition hidden" id="loginmessage">
+    <i class="icon info"></i>To save or access saved reports, please <span class="ui primary button">log in</span>.
+</div>
+<div class="ui list transition hidden" id="reports"></div>
 <div>TODO: First time explanation + cookie.</div>
 <div class="ui warning message">
-  <i class="icon warning"></i>This is an alpha version. Beware bugs!</div>
+  <i class="icon warning"></i>This is an alpha version. Beware bugs!
 </div>
 <div class="ui warning message">
-  <i class="icon warning"></i>Any data stored on the server may be deleted as I update the storage.</div>
+  <i class="icon warning"></i>Any data stored on the server may be deleted as I update the storage.
 </div>
