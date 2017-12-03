@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <head>
-  <link rel="stylesheet" type="text/css" href="semantic/dist/semantic.min.css">
+  <link rel="stylesheet" type="text/css" href="/semantic/dist/semantic.min.css">
   <script src="https://code.jquery.com/jquery-3.1.1.min.js"
       integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
       crossorigin="anonymous"></script>
-  <script src="semantic/dist/semantic.min.js"></script>
-  <script src="resources/financials.js"></script>
+  <script src="/semantic/dist/semantic.min.js"></script>
+  <script src="/resources/financials.js"></script>
   <style>
     .table {
       table-layout: fixed;
@@ -22,8 +22,15 @@
         return;
       }
 
-      $(".tab").eq(window.selectedStep).removeClass("active");
-      $(".tab").eq(index).addClass("active");
+      $(".ui.tab").eq(window.selectedStep).removeClass("active");
+      $(".ui.tab").eq(index).addClass("active");
+      $(".ui.tab").tab();
+
+      if (index == 4) {
+        $(".ui.sticky").sticky({
+          context: "#stickyContext"
+        });
+      }
 
       window.selectedStep = index;
       console.log("selected step updated to " + index);
@@ -401,14 +408,85 @@
       populateReport(generateJSONFromUI());
     }
 
+    function get_report_id() {
+      // Check the report_id.
+      var paths = new URL(window.location.href).pathname.substring(1).split("/", 2)
+      if (paths.length == 1 || paths[1] === "")
+        return null;
+      return paths[1];
+    }
+
+    function saveReport() {
+      var url = "/manage_report";
+      var id = get_report_id();
+      if (id !== null) {
+        url += "/" + id;
+      }
+      jQuery.post(url, JSON.stringify(generateJSONFromUI()), function(xhr) {
+        // Handle success.
+        // If we already have a report_id, we updated it so no need to update
+        // the URL.
+        if (get_report_id()) {
+          var report_id = xhr;
+          window.history.replaceState({}, "Report", window.location.href + "/" + report_id);
+          // TODO: We should have a message (and offer to copy the URL for sharing)?
+        }
+      }).fail(function (xhr, textStatus) {
+        // Handle failure.
+      });
+    }
+
+    function updateLoggedState() {
+      if (window.logged) {
+        $("#saveOrLogging").text("Save");
+        $("#saveOrLogging").on("click", saveReport);
+      } else {
+        $("#saveOrLogging").text("Log in");
+        var loginFunction = function() {
+          var w = window.open("/login", "_blank");
+          var unloadSeen = 0;
+          w.addEventListener("unload", function() {
+            ++unloadSeen;
+            if (unloadSeen == 2) {
+              window.logged = true;
+              w.close();
+              $("#saveOrLogging").off("click", loginFunction);
+              updateLoggedState();
+            }
+          });
+        };
+        $("#saveOrLogging").on("click", loginFunction);
+      }
+    }
+
+    function fillInPage() {
+      var id = get_report_id();
+      if (id !== null) {
+        jQuery.get("/manage_report/" + id, "", function(text) {
+          // TODO: Failure?
+          console.log(text);
+          populateUIFromJSON(JSON.parse(text));
+          updateSelectedStep(4);
+        }, "text").fail(function() {
+          // TODO: Clear the ID and show an error.
+        });
+      } else {
+        // If the user is logged in and owns the report.
+        // Give focus to the first element.
+        // TODO: Is that correct in general?
+        $("#nameInput").focus();
+
+        // Sync the selected step.
+        updateSelectedStep(0);
+      }
+    }
     function preparePage() {
       // Initialize semantics.
       $(".ui.accordion").accordion();
       $(".ui.dropdown").dropdown();
 
-      // Give focus to the first element.
-      // TODO: Is that correct in general?
-      $("#nameInput").focus();
+      // Update our button state based on the user is logged in status.
+      updateLoggedState();
 
       // TODO: We should use change when we can as it prevents
       // UI churn due to too many events.
@@ -419,8 +497,7 @@
 
       $(".step").click(selectStep);
 
-      // Sync the selected step.
-      updateSelectedStep(0);
+      fillInPage();
 
       // TODO: Remove this cheat for developing.
       $("#cheat").click(function(e) { populateUIFromJSON(generateFakeData()); updateSelectedStep(4); });
@@ -438,7 +515,7 @@
 </button>
 
 <div class="ui ordered steps">
-  <div class="active step">
+  <div class="step">
     <div class="content">
         <div class="title">Property details</div>
     </div>
@@ -464,7 +541,7 @@
     </div>
   </div>
 </div>
-<div class="ui tab active">
+<div class="ui tab">
   <div class="ui segments">
     <table class="ui very basic collapsing table">
       <tr>
@@ -728,110 +805,120 @@ Future and taxes
   </div>
 </div>
 <div class="ui tab">
-  <!-- TODO: Add DSCR, GRM -->
-  <!-- TODO: Add cash flow per unit per month -->
-  <!-- TODO: Add total interest? Total cost? Amortization table? -->
-  <!-- TODO: Add Debt service 3m, 6m? -->
-  <div class="ui segment accordion">
-    <div class="ui title">
-      <div class="ui header">
+
+  <div class="ui container">
+    <div class="ui menu sticky">
+      <button class="ui primary button" id="saveOrLogging"></button>
+      <button class="ui disabled button">Share</button>
+    </div>
+  </div>
+
+  <div class="ui segment" id="stickyContext">
+    <!-- TODO: Add DSCR, GRM -->
+    <!-- TODO: Add cash flow per unit per month -->
+    <!-- TODO: Add total interest? Total cost? Amortization table? -->
+    <!-- TODO: Add Debt service 3m, 6m? -->
+    <div class="ui segment accordion">
+      <div class="ui title">
+        <div class="ui header">
+          <i class="dropdown icon"></i>
+          Property name: <span id="name"></span>
+        </div>
+        <table class="ui very basic collapsing table">
+          <tr><td>Property price</td><td> <span id="price"></span></td></tr>
+          <tr><td>CapRate</td><td> <span id="caprate"></span></td></tr>
+        </table>
+      </div>
+      <div class="content">
+        <table class="ui very basic collapsing table">
+          <tr><td>Property address</td><td><span id="address"></span></td></tr>
+          <tr><td>ZIP</td><td><span id="zip"></span></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="ui segments context">
+      <div class="ui blue segment">
+        <div class="ui header">
+          Performance metrics
+        </div>
+        <table class="ui very basic collapsing table">
+          <tr><td>Cashflow return on equity</td><td> <span id="cashflowROE"></span></td></tr>
+          <tr><td>Appreciation return on equity</td><td> <span id="appreciationROE"></span></td></tr>
+          <tr><td>Equity build return on equity</td><td> <span id="equityBuildROE"></span></td></tr>
+          <tr><td>Tax return on equity</td><td> <span id="taxROE"></span></td></tr>
+          <tr><td>Total return on equity</td><td> <span id="totalROE"></span></td></tr>
+        </table>
+      </div>
+
+      <div class="ui blue segment">
+        <div class="ui header">Expenses</div>
+        <!-- TODO: Add a numeric breakdown for all the expenses -->
+        <div id="piechart" style="width:800px; height:500px"></div>
+      </div>
+
+      <!-- NOT REFACTORED AFTER THIS POINT -->
+      <div class="ui blue segment">
+        <table class="ui very basic collapsing table">
+          <tr><td>Closing costs</td><td> <span id="closingCosts"></span></td></tr>
+          <tr><td>Repairs</td><td><span id="repairs"></span></td></tr>
+          <tr><td>Cash outlay</td><td><span id="cashOutlay"></span></td></tr>
+        </table>
+      </div>
+
+      <div class="ui blue segment">
+        <table class="ui very basic collapsing table">
+          <tr><td>GOI</td><td> <span id="goi"></td></tr>
+          <tr><td>Vacancy</td><td> <span id="vacancy"></td></tr>
+          <tr><td>Expenses</td><td> <span id="expenses"></td></tr>
+          <tr><td>NOI</td><td> <span id="noi"></td></tr>
+          <tr><td>Debt Service</td><td> <span id="debtService"></td></tr>
+          <tr><td>Cashflow</td><td> <span id="cashflow"></td></tr>
+        </table>
+      </div>
+      <div class="ui blue segment">
+        <table class="ui very basic collapsing table">
+        <thead>
+          <tr><td colspan="2"><div class="ui sub header title">Financing</div></td></tr>
+        </thead>
+        <tbody>
+          <tr><td>Loan amount</td><td> <span id="loanAmount"></td></tr>
+          <tr><td>Interest rate</td><td> <span id="interest"></td></tr>
+          <tr><td>Length (years)</td><td> <span id="lengthYears"></td></tr>
+          <tr><td>Mortgage payment</td><td> <span id="monthlyPayment"></td></tr>
+        </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="ui accordion">
+      <div class="title">
         <i class="dropdown icon"></i>
-        Property name: <span id="name"></span>
+        Yearly projections
       </div>
-      <table class="ui very basic collapsing table">
-        <tr><td>Property price</td><td> <span id="price"></span></td></tr>
-        <tr><td>CapRate</td><td> <span id="caprate"></span></td></tr>
-      </table>
-    </div>
-    <div class="content">
-      <table class="ui very basic collapsing table">
-        <tr><td>Property address</td><td><span id="address"></span></td></tr>
-        <tr><td>ZIP</td><td><span id="zip"></span></td></tr>
-      </table>
-    </div>
-  </div>
-  <div class="ui segments context">
-    <div class="ui blue segment">
-      <div class="ui header">
-        Performance metrics
+      <div class="content">
+        <p class="transition hidden">
+          <!-- TODO: This doesn't do the right thing in narrow viewports.
+              Changing to vertical segments could help maybe? -->
+          <table id="projections" class="ui very basic collapsing table"></table>
+        </p>
       </div>
-      <table class="ui very basic collapsing table">
-        <tr><td>Cashflow return on equity</td><td> <span id="cashflowROE"></span></td></tr>
-        <tr><td>Appreciation return on equity</td><td> <span id="appreciationROE"></span></td></tr>
-        <tr><td>Equity build return on equity</td><td> <span id="equityBuildROE"></span></td></tr>
-        <tr><td>Tax return on equity</td><td> <span id="taxROE"></span></td></tr>
-        <tr><td>Total return on equity</td><td> <span id="totalROE"></span></td></tr>
-      </table>
     </div>
-
-    <div class="ui blue segment">
-      <div class="ui header">Expenses</div>
-      <!-- TODO: Add a numeric breakdown for all the expenses -->
-      <div id="piechart" style="width:800px; height:500px"></div>
+    <div class="ui accordion">
+      <div class="title">
+        <i class="dropdown icon"></i>
+        IRR
+      </div>
+      <div class="content">
+        <p class="transition hidden">TODO: Implement.</p>
+      </div>
     </div>
-
-    <!-- NOT REFACTORED AFTER THIS POINT -->
-    <div class="ui blue segment">
-      <table class="ui very basic collapsing table">
-        <tr><td>Closing costs</td><td> <span id="closingCosts"></span></td></tr>
-        <tr><td>Repairs</td><td><span id="repairs"></span></td></tr>
-        <tr><td>Cash outlay</td><td><span id="cashOutlay"></span></td></tr>
-      </table>
-    </div>
-
-    <div class="ui blue segment">
-      <table class="ui very basic collapsing table">
-        <tr><td>GOI</td><td> <span id="goi"></td></tr>
-        <tr><td>Vacancy</td><td> <span id="vacancy"></td></tr>
-        <tr><td>Expenses</td><td> <span id="expenses"></td></tr>
-        <tr><td>NOI</td><td> <span id="noi"></td></tr>
-        <tr><td>Debt Service</td><td> <span id="debtService"></td></tr>
-        <tr><td>Cashflow</td><td> <span id="cashflow"></td></tr>
-      </table>
-    </div>
-    <div class="ui blue segment">
-      <table class="ui very basic collapsing table">
-      <thead>
-        <tr><td colspan="2"><div class="ui sub header title">Financing</div></td></tr>
-      </thead>
-      <tbody>
-        <tr><td>Loan amount</td><td> <span id="loanAmount"></td></tr>
-        <tr><td>Interest rate</td><td> <span id="interest"></td></tr>
-        <tr><td>Length (years)</td><td> <span id="lengthYears"></td></tr>
-        <tr><td>Mortgage payment</td><td> <span id="monthlyPayment"></td></tr>
-      </tbody>
-      </table>
-    </div>
-  </div>
-  <div class="ui accordion">
-    <div class="title">
-      <i class="dropdown icon"></i>
-      Yearly projections
-    </div>
-    <div class="content">
-      <p class="transition hidden">
-        <!-- TODO: This doesn't do the right thing in narrow viewports.
-            Changing to vertical segments could help maybe? -->
-        <table id="projections" class="ui very basic collapsing table"></table>
-      </p>
-    </div>
-  </div>
-  <div class="ui accordion">
-    <div class="title">
-      <i class="dropdown icon"></i>
-      IRR
-    </div>
-    <div class="content">
-      <p class="transition hidden">TODO: Implement.</p>
-    </div>
-  </div>
-  <div class="ui accordion">
-    <div class="title">
-      <i class="dropdown icon"></i>
-      Present value Analysis
-    </div>
-    <div class="content">
-      <p class="transition hidden">TODO: Implement.</p>
+    <div class="ui accordion">
+      <div class="title">
+        <i class="dropdown icon"></i>
+        Present value Analysis
+      </div>
+      <div class="content">
+        <p class="transition hidden">TODO: Implement.</p>
+      </div>
     </div>
   </div>
 </div>

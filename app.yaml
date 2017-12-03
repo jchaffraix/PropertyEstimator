@@ -9,6 +9,13 @@ handlers:
 - url: /resources
   static_dir: resources/
   secure: always
+- url: /login
+  script: login.app
+  login: required
+- url: /logout
+  script: login.app
+- url: /autoclose
+  script: login.app
 - url: /.*
   script: broker.app
   secure: always
