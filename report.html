@@ -426,7 +426,7 @@
         // Handle success.
         // If we already have a report_id, we updated it so no need to update
         // the URL.
-        if (get_report_id()) {
+        if (get_report_id() === null) {
           var report_id = xhr;
           window.history.replaceState({}, "Report", window.location.href + "/" + report_id);
           // TODO: We should have a message (and offer to copy the URL for sharing)?
