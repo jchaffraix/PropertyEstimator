@@ -77,6 +77,8 @@ class DashboardPage(webapp2.RequestHandler):
     html = open('dashboard.html').read()
     if users.get_current_user():
       html += "<script>window.logged = true;</script>"
+    else:
+      html += "<script>window.login_url = '" + users.create_login_url('/') + "';</script>"
     self.response.write(html)
 
 def get_report_id(url):

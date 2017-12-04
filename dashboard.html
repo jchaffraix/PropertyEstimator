@@ -16,20 +16,9 @@
       buttons.eq(1).click(function() {
         console.log("Implement removal logic!");
       });
-      var loginFunction = function() {
-        var w = window.open("/login", "_blank");
-        var unloadSeen = 0;
-        w.addEventListener("unload", function() {
-          ++unloadSeen;
-          if (unloadSeen == 2) {
-            window.logged = true;
-            w.close();
-            buttons.eq(3).off("click", loginFunction);
-            loadExistingReports();
-          }
-        });
-      };
-      buttons.eq(3).click(loginFunction);
+      // TODO: login_url is injected by the backend but we
+      // should find a better way to handle this communication.
+      buttons.eq(3).click(function() { window.location.href = window.login_url; });
     }
 
     function populateExistingReports(name_key_mapping) {
