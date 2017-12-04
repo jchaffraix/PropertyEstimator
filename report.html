@@ -157,7 +157,7 @@
       updateUI();
     }
 
-    function generateJSONFromUI(info) {
+    function generateJSONFromUI(name_prefix) {
       /* This function generates a JSON object
          from the UI elements. The purpose is
          to generate the report and send this
@@ -173,7 +173,11 @@
       info.property = {};
       // TODO: We are setting empty fields on the object.
       // It should be harmless though.
-      info.property.name = $("#nameInput").val();
+      if (name_prefix !== undefined) {
+        info.property.name = name_prefix + $("#nameInput").val();
+      } else {
+        info.property.name = $("#nameInput").val();
+      }
       info.property.type = $("#typeInput").val();
       info.property.price = +$("#priceInput").val();
       info.property.address = $("#addressInput").val();
@@ -416,6 +420,19 @@
       return paths[1];
     }
 
+    function duplicateReport() {
+      var url = "/manage_report";
+
+      jQuery.post(url, JSON.stringify(generateJSONFromUI("Copy of ")), function(xhr) {
+        // Handle success.
+        var report_id = xhr;
+        window.history.replaceState({}, "Report", "/report/" + report_id);
+        // TODO: We should have a message (and offer to copy the URL for sharing)?
+      }).fail(function (xhr, textStatus) {
+        // Handle failure.
+      });
+    }
+
     function saveReport() {
       var url = "/manage_report";
       var id = get_report_id();
@@ -440,6 +457,10 @@
       if (window.logged) {
         $("#save").transition("slide down");
         $("#save").on("click", saveReport);
+        if (get_report_id() !== null) {
+          $("#duplicate").transition("slide down");
+          $("#duplicate").on("click", duplicateReport);
+        }
       } else {
         // The 'cookie' storage method relies on the deprecated library
         // for JQuery cookies ($.cookie). Override to use localstorage.
@@ -812,6 +833,7 @@
       </div>
 
       <button class="ui primary button transition hidden" id="save">Save</button>
+      <button class="ui secondary button transition hidden" id="duplicate">Duplicate</button>
       <!-- TODO: Add a duplicate button. -->
     </div>
   </div>
