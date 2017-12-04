@@ -535,98 +535,102 @@
 </div>
 <div class="ui tab">
   <div class="ui segments">
-    <table class="ui very basic collapsing table">
-      <tr>
-        <td>Report name</td>
-        <td>
-          <div class="ui input error focus">
-            <input type="text" id="nameInput">
-          </div>
-        </td>
-      </tr>
-      <tr>
-        <td>Property type</td>
-        <td>
-          <div class="ui selection dropdown">
-            <input type="hidden" id="typeInput">
-            <i class="dropdown icon"></i>
-            <div class="default text">Select one</div>
-            <div class="menu">
-              <div class="item" data-value="residential">Residential</div>
-              <div class="item" data-value="commercial">Commercial</div>
+    <div class="ui top attached segment">
+      <table class="ui very basic collapsing table">
+        <tr>
+          <td>Report name</td>
+          <td>
+            <div class="ui input error focus">
+              <input type="text" id="nameInput">
             </div>
-          </div>
-          <div class="ui left pointing red basic label" id="typeInputError">
-            Please choose a value
-          </div>
-        </td>
-      </tr>
-      <tr>
-        <td>Price</td>
-        <td>
-          <div class="ui input error focus">
-            <input type="number" id="priceInput">
-          </div>
-        </td>
-      </tr>
-      <tr>
-        <td>Address</td>
-        <td>
-          <div class="ui input focus">
-            <input type="text" id="addressInput">
-          </div>
-        </td>
-      </tr>
-      <tr>
-        <td>zip</td>
-        <td>
-          <div class="ui input focus">
-            <!-- TODO: Validate! -->
-            <input type="number" id="zipInput">
-          </div>
-        </td>
-      </tr>
-      <!-- TODO: Missing # of units. -->
-      <!-- TODO: Missing SqFt (opt). -->
-    </table>
+          </td>
+        </tr>
+        <tr>
+          <td>Property type</td>
+          <td>
+            <div class="ui selection dropdown">
+              <input type="hidden" id="typeInput">
+              <i class="dropdown icon"></i>
+              <div class="default text">Select one</div>
+              <div class="menu">
+                <div class="item" data-value="residential">Residential</div>
+                <div class="item" data-value="commercial">Commercial</div>
+              </div>
+            </div>
+            <div class="ui left pointing red basic label" id="typeInputError">
+              Please choose a value
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>Price</td>
+          <td>
+            <div class="ui input error focus">
+              <input type="number" id="priceInput">
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>Address</td>
+          <td>
+            <div class="ui input focus">
+              <input type="text" id="addressInput">
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>zip</td>
+          <td>
+            <div class="ui input focus">
+              <!-- TODO: Validate! -->
+              <input type="number" id="zipInput">
+            </div>
+          </td>
+        </tr>
+        <!-- TODO: Missing # of units. -->
+        <!-- TODO: Missing SqFt (opt). -->
+      </table>
+    </div>
   </div>
 </div>
 <div class="ui tab">
   <div class="ui segments">
-    <table class="ui very basic collapsing table">
-      <tr>
-        <td>Downpayment (%)</td>
-        <td>
-          <div class="ui input error focus">
-            <!-- TODO: Validate or combo box or populate.-->
-            <!-- TODO: We should allow for an absolute number too. -->
-            <input type="number" id="downpaymentInput">
-          </div>
-        </td>
-      </tr>
-      <tr>
-        <td>Interest (%)</td>
-        <td>
-          <div class="ui input error focus">
-            <input type="text" id="interestInput">
-          </div>
-        </td>
-      </tr>
-      <tr>
-        <!-- TODO: Find a better name. -->
-        <td>Duration (years)</td>
-        <td>
-          <div class="ui input error focus">
-            <input type="text" id="durationInput">
-          </div>
-        </td>
-      </tr>
-    </table>
+    <div class="ui top attached segment">
+      <table class="ui very basic collapsing table">
+        <tr>
+          <td>Downpayment (%)</td>
+          <td>
+            <div class="ui input error focus">
+              <!-- TODO: Validate or combo box or populate.-->
+              <!-- TODO: We should allow for an absolute number too. -->
+              <input type="number" id="downpaymentInput">
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>Interest (%)</td>
+          <td>
+            <div class="ui input error focus">
+              <input type="text" id="interestInput">
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <!-- TODO: Find a better name. -->
+          <td>Duration (years)</td>
+          <td>
+            <div class="ui input error focus">
+              <input type="text" id="durationInput">
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
   </div>
 </div>
 <div class="ui tab">
   <div class="ui segments">
-    <div class="ui segment">
+    <div class="ui top attached segment">
       <table class="ui very basic collapsing table">
       <tr>
         <!-- TODO: Default closing costs! -->
@@ -744,9 +748,8 @@
   </div>
 </div>
 <div class="ui tab">
-Future and taxes
   <div class="ui segments">
-    <div class="ui segment">
+    <div class="ui top attached segment">
       <table class="ui very basic collapsing table">
         <tr>
           <td>Rent increase (%)</td>
@@ -813,7 +816,7 @@ Future and taxes
     </div>
   </div>
 
-  <div class="ui segment" id="stickyContext">
+  <div class="ui top attached segment" id="stickyContext">
     <!-- TODO: Add DSCR, GRM -->
     <!-- TODO: Add cash flow per unit per month -->
     <!-- TODO: Add total interest? Total cost? Amortization table? -->
