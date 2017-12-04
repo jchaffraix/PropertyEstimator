@@ -33,7 +33,6 @@
       }
 
       window.selectedStep = index;
-      console.log("selected step updated to " + index);
     }
 
     function selectStep(e) {
@@ -520,6 +519,10 @@
       $("#cheat").click(function(e) { populateUIFromJSON(generateFakeData()); updateSelectedStep(4); });
     }
 
+    function debug() {
+      $("#cheat").transition("slide down");
+    }
+
     window.addEventListener("load", preparePage, false);
     google.charts.load('current', {'packages':['corechart']});
   </script>
@@ -527,9 +530,7 @@
 </head>
 <body>
 
-<button class="ui primary button" id="cheat">
-  Cheat
-</button>
+<button class="ui primary button transition hidden" id="cheat">Cheat</button>
 
 <div class="ui ordered steps">
   <div class="step">
