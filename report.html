@@ -498,6 +498,10 @@
       $(".ui.accordion").accordion();
       $(".ui.dropdown").dropdown();
 
+      // TODO: login_url is injected by the backend but we
+      // should find a better way to handle this communication.
+      $("#loginButton").click(function() { window.location.href = window.login_url; });
+
       // Update our button state based on the user is logged in status.
       updateLoggedState();
 
@@ -828,7 +832,7 @@
         <i class="close icon" id="closeNagIcon"></i>
         <div class="title">
           Not logged in. Unfortunately you can't save the current report.
-          To save future reports, make sure to <button class="ui primary button">log in</button>.
+          To save future reports, make sure to <button class="ui primary button" id="loginButton">log in</button>.
         </div>
       </div>
 

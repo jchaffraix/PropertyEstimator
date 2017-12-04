@@ -107,6 +107,8 @@ class ReportPage(webapp2.RequestHandler):
         report = Report.get_by_id(report_id)
         if report and report.key.parent() == Report.key_for_user(user):
           html += "<script>window.ownsReport = true;</script>"
+    else:
+      html += "<script>window.login_url = '" + users.create_login_url('/report') + "';</script>"
     self.response.write(html)
 
 class AllUserReports(webapp2.RequestHandler):
