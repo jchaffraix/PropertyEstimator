@@ -126,4 +126,21 @@ function computeFinancials(info) {
   return financials;
 }
 
+// Rewrite of the logic above with unit testing.
+// TODO: Remove the code above.
+function noi(incomeStreams, expenses) {
+  var incomePerMonth = 0;
+  for (var i = 0; i < incomeStreams.length; ++i) {
+    incomePerMonth += incomeStreams[i].amount;
+  }
+  var expensePerMonth = 0;
+  for (var i = 0; i < expenses.length; ++i) {
+    expensePerMonth += expenses[i].amount;
+  }
+  return 12 * (incomePerMonth - expensePerMonth);
+}
 
+function test() {
+}
+
+module.exports.noi = noi;
