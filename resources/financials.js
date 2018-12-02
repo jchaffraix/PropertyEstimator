@@ -128,24 +128,37 @@ function computeFinancials(info) {
 
 // Rewrite of the logic above with unit testing.
 // TODO: Remove the code above.
-function noi(incomeStreams, expenses) {
-  var incomePerMonth = 0;
-  for (var i = 0; i < incomeStreams.length; ++i) {
-    incomePerMonth += incomeStreams[i].amount;
+
+function convertToAbsoluteExpense(propertyPrice, grossScheduledMonthlyIncome, expense) {
+  if (expense.type === "absolute") {
+    return expense.amount;
+  } else if (expense.type === "percentagePropertyPrice") {
+    return expense.amount * propertyPrice;
+  } else if (expense.type === "percentageGSI") {
+    return expense.amount * grossScheduledMonthlyIncome;
   }
-  // TODO: Support taxes that are a percentage of property value.
+  throw "Unknown expense type: " + expense.type;
+}
+
+function noi(propertyPrice, incomeStreams, expenses) {
+  var grossScheduledMonthlyIncome = 0;
+  for (var i = 0; i < incomeStreams.length; ++i) {
+    grossScheduledMonthlyIncome += incomeStreams[i].amount;
+  }
+  // TODO: Support expenses that are a percentage of GOI (business tax).
   var expensePerMonth = 0;
   var expensePerYear = 0;
   for (var i = 0; i < expenses.length; ++i) {
-    if (expenses[i].schedule === "monthly") {
-      expensePerMonth += expenses[i].amount;
-    } else if (expenses[i].schedule === "yearly") {
-      expensePerYear += expenses[i].amount;
+    var expense = expenses[i];
+    if (expense.schedule === "monthly") {
+      expensePerMonth += convertToAbsoluteExpense(propertyPrice, grossScheduledMonthlyIncome, expense);
+    } else if (expense.schedule === "yearly") {
+      expensePerYear += convertToAbsoluteExpense(propertyPrice, 12 * grossScheduledMonthlyIncome, expense);
     } else {
-      throw "Unknown schedule for expense: " + expenses[i].schedule;
+      throw "Unknown schedule for expense: " + expense.schedule;
     }
   }
-  return 12 * (incomePerMonth - expensePerMonth) - expensePerYear;
+  return 12 * (grossScheduledMonthlyIncome - expensePerMonth) - expensePerYear;
 }
 
 function round(number) {
@@ -208,7 +221,7 @@ function roi(propertyPrice, closingCosts, incomeStreams, expenses, loans) {
   var amortization = amortizationForPeriod(loans, 0, 12);
 
   var debtService =  amortization.interestPaid + amortization.loanReduction;
-  var cashflow = noi(incomeStreams, expenses) - debtService;
+  var cashflow = noi(propertyPrice, incomeStreams, expenses) - debtService;
 
   // TODO: Support multiple loans and multiple closing costs.
   var cashOutlay = propertyPrice - loans[0].amount + closingCosts[0].amount;

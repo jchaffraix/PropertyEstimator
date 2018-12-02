@@ -5,35 +5,55 @@ function buildSimpleIncomeStream(name, amount) {
 }
 
 function buildMonthlyExpense(name, amount) {
-  return {"name": name, "amount": amount, "schedule": "monthly" };
+  return {"name": name, "amount": amount, "schedule": "monthly", "type": "absolute" };
 }
 
 function buildYearlyExpense(name, amount) {
-  return {"name": name, "amount": amount, "schedule": "yearly" };
+  return {"name": name, "amount": amount, "schedule": "yearly", "type": "absolute" };
+}
+
+function buildTaxExpense(amount) {
+  return {"name": "tax", "amount": amount, "schedule": "yearly", "type": "percentagePropertyPrice" };
+}
+
+function buildVacancyExpense(amount) {
+  return {"name": "tax", "amount": amount, "schedule": "yearly", "type": "percentageGSI" };
 }
 
 // NOI testing.
 
 test("basic noi", () => {
-  expect(financials.noi([buildSimpleIncomeStream("rent", 1000)],
+  expect(financials.noi(10000,
+                        [buildSimpleIncomeStream("rent", 1000)],
                         [buildMonthlyExpense("repair", 500)]))
     .toBe(6000);
 });
 
 test("noi multiple income streams and expenses", () => {
-  expect(financials.noi([buildSimpleIncomeStream("rent", 1000),
-                         buildSimpleIncomeStream("washing", 10)], 
+  expect(financials.noi(10000,
+                        [buildSimpleIncomeStream("rent", 1000),
+                         buildSimpleIncomeStream("washing", 10)],
                         [buildMonthlyExpense("tax", 100),
                          buildMonthlyExpense("repair", 400)]))
       .toBe(6120);
 });
 
 test("noi multiple income streams and monthly/yeary expenses", () => {
-  expect(financials.noi([buildSimpleIncomeStream("rent", 1000),
-                         buildSimpleIncomeStream("washing", 10)], 
+  expect(financials.noi(10000,
+                        [buildSimpleIncomeStream("rent", 1000),
+                         buildSimpleIncomeStream("washing", 10)],
                         [buildYearlyExpense("tax", 500),
                          buildMonthlyExpense("repair", 400)]))
       .toBe(6820);
+});
+
+test("noi with GSI and property price percentage", () => {
+  expect(financials.noi(10000,
+                        [buildSimpleIncomeStream("rent", 1000)],
+                        [buildTaxExpense(.013),
+                         buildMonthlyExpense("repair", 400),
+                         buildVacancyExpense(0.05)]))
+      .toBe(6470);
 });
 
 // amortizationForYear
@@ -72,12 +92,28 @@ test("simple amortization, end period past loan end", () => {
 
 // ROI computations.
 
-test("Realistic ROI", () => {
+test("Realistic ROI (absolute numbers)", () => {
   var loans = [buildLoan(35200, 0.035, 180)];
   var incomeStream = [buildSimpleIncomeStream("rent", 486)];
   var expenses = [buildYearlyExpense("taxes", 572),
                   buildMonthlyExpense("condo fees", 300.4),
                   buildMonthlyExpense("vacancy", 14.58),
+                  buildYearlyExpense("business license", 39)];
+  var closingCosts = [{"amount": 2870}];
+  expect(financials.roi(44000, closingCosts, incomeStream, expenses, loans))
+    .toEqual({"cashOnCash": {"absolute": -1578.42, "percentage": -0.1353},
+              "loanReduction": {"absolute": 1816.62, "percentage": 0.1557},
+              "appreciation": {"absolute": 0, "percentage": 0},
+              "tax": {"absolute": 0, "percentage": 0},
+              "total": {"absolute": 238.2, "percentage": 0.0204}});
+});
+
+test("Realistic ROI (relative numbers)", () => {
+  var loans = [buildLoan(35200, 0.035, 180)];
+  var incomeStream = [buildSimpleIncomeStream("rent", 486)];
+  var expenses = [buildTaxExpense(0.013),
+                  buildMonthlyExpense("condo fees", 300.4),
+                  buildVacancyExpense(.03),
                   buildYearlyExpense("business license", 39)];
   var closingCosts = [{"amount": 2870}];
   expect(financials.roi(44000, closingCosts, incomeStream, expenses, loans))
