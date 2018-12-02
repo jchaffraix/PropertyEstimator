@@ -144,23 +144,52 @@ function round(number) {
   return Math.round(number * 100) / 100;
 }
 
-function amortizationForYear(loans) {
-  // TODO: Support arbitrary start/end period.
+function amortizationForPeriod(loans, startPeriod, endPeriod) {
+  /* Start is excluded but end is included.
+   *
+   * Thus to compute the second year's worth of data you should
+   * call: amortizationForPeriod(loans, 12, 24).
+   */
+
   // TODO: Support multiple loans.
   // TODO: Support interest only loans and/or deferred interest.
   // TODO: Is the rounding correct? E.g. shouldn't each payment/interest be rounded?
-  var totalInterestPaid = 0;
+  if (startPeriod > endPeriod) {
+    throw "Invalid [start, end] periods: [" + startPeriod + ", " + endPeriod + "]";
+  }
+
+  // Ensure we don't go past the end of the loan.
+  endPeriod = Math.min(endPeriod, loans[0].months);
+  startPeriod = Math.min(startPeriod, endPeriod);
+  if (startPeriod == endPeriod) {
+    throw "Start/end periods are equal (did you provide them past the end of the loan?)";
+  }
+
   var balance = loans[0].amount;
   var paymentPerPeriod = PMT(loans[0].rate / 12, loans[0].months, loans[0].amount);
-  // TODO: Check that we don't go past the end of the mortgage.
-  for (var k = 0; k < 12; ++k) {
+  // Move forward to the period to consider.
+  for (var i = 0; i < startPeriod; ++i) {
+    var interest = balance * loans[0].rate / 12;
+    balance -= (paymentPerPeriod - interest);
+  }
+
+  // Now compute over the period.
+  var totalInterestPaid = 0;
+  var startingBalance = balance;
+  for (var i = startPeriod; i < endPeriod; ++i) {
     var interest = balance * loans[0].rate / 12;
     balance -= (paymentPerPeriod - interest);
     totalInterestPaid += interest;
   }
+
   // TODO: Return the debt service too (12 * PMT)?
-  return {"interestPaid": round(totalInterestPaid), "loanReduction": round(loans[0].amount - balance)};
+  return {"interestPaid": round(totalInterestPaid), "loanReduction": round(startingBalance - balance)};
 }
 
-module.exports.noi = noi;
-module.exports.amortizationForYear = amortizationForYear;
+try {
+  // Register the modules for testing. In production,
+  // |module| is not defined so we just disable the
+  // no-such-variable exception.
+  module.exports.noi = noi;
+  module.exports.amortizationForPeriod = amortizationForPeriod;
+} catch (e) { }
