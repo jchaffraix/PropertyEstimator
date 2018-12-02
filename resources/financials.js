@@ -194,10 +194,39 @@ function amortizationForPeriod(loans, startPeriod, endPeriod) {
   return {"interestPaid": round(totalInterestPaid), "loanReduction": round(startingBalance - balance)};
 }
 
+function roundPercentage(percent) {
+  return Math.round(percent * 10000) / 10000;
+}
+
+function generateRoi(absoluteRoi, cashOutlay) {
+  return {"absolute": round(absoluteRoi),
+          "percentage": roundPercentage(absoluteRoi/cashOutlay)};
+}
+
+function roi(propertyPrice, closingCosts, incomeStreams, expenses, loans) {
+  // TODO: Allow arbitrary start/end period.
+  var amortization = amortizationForPeriod(loans, 0, 12);
+
+  var debtService =  amortization.interestPaid + amortization.loanReduction;
+  var cashflow = noi(incomeStreams, expenses) - debtService;
+
+  // TODO: Support multiple loans and multiple closing costs.
+  var cashOutlay = propertyPrice - loans[0].amount + closingCosts[0].amount;
+
+  var roi = {};
+  roi.cashOnCash = generateRoi(cashflow, cashOutlay);
+  roi.loanReduction = generateRoi(amortization.loanReduction, cashOutlay);
+  roi.appreciation = generateRoi(0, cashOutlay); // TODO: Implement.
+  roi.tax = generateRoi(0, cashOutlay); // TODO: Implement.
+  roi.total = generateRoi(cashflow + amortization.loanReduction, cashOutlay);
+  return roi;
+}
+
 try {
   // Register the modules for testing. In production,
   // |module| is not defined so we just disable the
   // no-such-variable exception.
   module.exports.noi = noi;
   module.exports.amortizationForPeriod = amortizationForPeriod;
+  module.exports.roi = roi;
 } catch (e) { }

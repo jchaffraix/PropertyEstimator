@@ -69,3 +69,21 @@ test("simple amortization, end period past loan end", () => {
     .toEqual({"interestPaid": 139508.9,
               "loanReduction": 100000});
 });
+
+// ROI computations.
+
+test("Realistic ROI", () => {
+  var loans = [buildLoan(35200, 0.035, 180)];
+  var incomeStream = [buildSimpleIncomeStream("rent", 486)];
+  var expenses = [buildYearlyExpense("taxes", 572),
+                  buildMonthlyExpense("condo fees", 300.4),
+                  buildMonthlyExpense("vacancy", 14.58),
+                  buildYearlyExpense("business license", 39)];
+  var closingCosts = [{"amount": 2870}];
+  expect(financials.roi(44000, closingCosts, incomeStream, expenses, loans))
+    .toEqual({"cashOnCash": {"absolute": -1578.42, "percentage": -0.1353},
+              "loanReduction": {"absolute": 1816.62, "percentage": 0.1557},
+              "appreciation": {"absolute": 0, "percentage": 0},
+              "tax": {"absolute": 0, "percentage": 0},
+              "total": {"absolute": 238.2, "percentage": 0.0204}});
+});
