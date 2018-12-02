@@ -4,24 +4,36 @@ function buildSimpleIncomeStream(name, amount) {
   return {"name": name, "amount": amount };
 }
 
-function buildSimpleExpense(name, amount) {
-  return {"name": name, "amount": amount };
+function buildMonthlyExpense(name, amount) {
+  return {"name": name, "amount": amount, "schedule": "monthly" };
+}
+
+function buildYearlyExpense(name, amount) {
+  return {"name": name, "amount": amount, "schedule": "yearly" };
 }
 
 // NOI testing.
 
 test("basic noi", () => {
   expect(financials.noi([buildSimpleIncomeStream("rent", 1000)],
-                        [buildSimpleExpense("repair", 500)]))
+                        [buildMonthlyExpense("repair", 500)]))
     .toBe(6000);
 });
 
 test("noi multiple income streams and expenses", () => {
   expect(financials.noi([buildSimpleIncomeStream("rent", 1000),
                          buildSimpleIncomeStream("washing", 10)], 
-                        [buildSimpleExpense("tax", 100),
-                         buildSimpleExpense("repair", 400)]))
+                        [buildMonthlyExpense("tax", 100),
+                         buildMonthlyExpense("repair", 400)]))
       .toBe(6120);
+});
+
+test("noi multiple income streams and monthly/yeary expenses", () => {
+  expect(financials.noi([buildSimpleIncomeStream("rent", 1000),
+                         buildSimpleIncomeStream("washing", 10)], 
+                        [buildYearlyExpense("tax", 500),
+                         buildMonthlyExpense("repair", 400)]))
+      .toBe(6820);
 });
 
 // amortizationForYear

@@ -133,11 +133,19 @@ function noi(incomeStreams, expenses) {
   for (var i = 0; i < incomeStreams.length; ++i) {
     incomePerMonth += incomeStreams[i].amount;
   }
+  // TODO: Support taxes that are a percentage of property value.
   var expensePerMonth = 0;
+  var expensePerYear = 0;
   for (var i = 0; i < expenses.length; ++i) {
-    expensePerMonth += expenses[i].amount;
+    if (expenses[i].schedule === "monthly") {
+      expensePerMonth += expenses[i].amount;
+    } else if (expenses[i].schedule === "yearly") {
+      expensePerYear += expenses[i].amount;
+    } else {
+      throw "Unknown schedule for expense: " + expenses[i].schedule;
+    }
   }
-  return 12 * (incomePerMonth - expensePerMonth);
+  return 12 * (incomePerMonth - expensePerMonth) - expensePerYear;
 }
 
 function round(number) {
