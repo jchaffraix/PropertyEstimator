@@ -140,7 +140,27 @@ function noi(incomeStreams, expenses) {
   return 12 * (incomePerMonth - expensePerMonth);
 }
 
-function test() {
+function round(number) {
+  return Math.round(number * 100) / 100;
+}
+
+function amortizationForYear(loans) {
+  // TODO: Support arbitrary start/end period.
+  // TODO: Support multiple loans.
+  // TODO: Support interest only loans and/or deferred interest.
+  // TODO: Is the rounding correct? E.g. shouldn't each payment/interest be rounded?
+  var totalInterestPaid = 0;
+  var balance = loans[0].amount;
+  var paymentPerPeriod = PMT(loans[0].rate / 12, loans[0].months, loans[0].amount);
+  // TODO: Check that we don't go past the end of the mortgage.
+  for (var k = 0; k < 12; ++k) {
+    var interest = balance * loans[0].rate / 12;
+    balance -= (paymentPerPeriod - interest);
+    totalInterestPaid += interest;
+  }
+  // TODO: Return the debt service too (12 * PMT)?
+  return {"interestPaid": round(totalInterestPaid), "loanReduction": round(loans[0].amount - balance)};
 }
 
 module.exports.noi = noi;
+module.exports.amortizationForYear = amortizationForYear;
