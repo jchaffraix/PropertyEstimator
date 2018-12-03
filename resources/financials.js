@@ -45,11 +45,13 @@ function computeFinancials(info) {
     financials.expensesForChart.push([expense, expenseAmount]);
   }
   financials.expensesForChart.push(["vacancy", financials.vacancies[0]]);
-  financials.equity = [ info.mortgage.downpayment * info.property.price + info.closingCosts.amount + info.closingCosts.repairs ];
+  financials.equity = [ info.property.price - getLoanAmount(info.property.price, info.loans[0].amount) + info.closingCosts.amount + info.closingCosts.repairs ];
   financials.noi = [ 12 * (financials.monthlyGrossIncome[0] - financials.monthlyOperatingExpenses[0] - financials.vacancies[0]) ];
-  // TODO: Rename to principalRemaining.
-  financials.loanAmount.push((1 - info.mortgage.downpayment) * info.property.price);
-  financials.monthlyDebtService = PMT(info.mortgage.interest / 12, info.mortgage.lengthYears * 12, financials.loanAmount);
+  // TODO: Rename to balance.
+  financials.loanAmount.push(getLoanAmount(info.property.price, info.loans[0].amount));
+  var paymentPerPeriod = PMT(info.loans[0].rate / 12, info.loans[0].months, financials.loanAmount[0]);
+  console.log(paymentPerPeriod);
+  financials.monthlyDebtService = paymentPerPeriod;
   financials.cashflow = [ financials.noi[0] - 12 * financials.monthlyDebtService ];
   financials.propertyValue = [ info.property.price ];
 
@@ -62,18 +64,12 @@ function computeFinancials(info) {
   financials.propertyValue.push(financials.propertyValue[0] + equityAccrued);
   financials.appreciationROE = [ equityAccrued / financials.equity[0]];
   financials.loanReductionROE = [];
-  var interests = 0;
-  var loanReduction = 0;
-  for (var k = 0; k < 12; ++k) {
-    var interest = (financials.loanAmount[0] - loanReduction) * (info.mortgage.interest / 12);
-    loanReduction += financials.monthlyDebtService - interest;
-    interests += interest;
-  }
-  nextYearEquity += loanReduction;
-  financials.loanAmount.push(financials.loanAmount[0] - loanReduction);
+  var amortization = amortizationForPeriod(info.property.price, info.loans, 0, 12);
+  nextYearEquity += amortization.loanReduction;
+  financials.loanAmount.push(financials.loanAmount[0] - amortization.loanReduction);
   financials.equity.push(nextYearEquity);
   financials.loanReductionROE = [];
-  financials.loanReductionROE.push(loanReduction / financials.equity[0]);
+  financials.loanReductionROE.push(amortization.loanReduction / financials.equity[0]);
   // Compute the depreciation. Per the IRS, it depends on the type of property.
   // TODO: Make those computation work for other countries.
   var depreciationOfAsset = info.tax.percentValueOfImprovement * info.property.price;
@@ -82,7 +78,7 @@ function computeFinancials(info) {
   } else {
     depreciationOfAsset /= 27.5;
   }
-  var remainingTaxDeduction = (depreciationOfAsset + info.closingCosts.repairs + interest) - financials.cashflow[0];
+  var remainingTaxDeduction = (depreciationOfAsset + info.closingCosts.repairs + amortization.interestPaid) - financials.cashflow[0];
   financials.taxROE = [ (remainingTaxDeduction * info.tax.bracket) / financials.equity[0] ];
 
   financials.totalROE = [ financials.cashflowROE[0] + financials.appreciationROE[0] + financials.loanReductionROE[0] + financials.taxROE[0] ];
@@ -105,19 +101,13 @@ function computeFinancials(info) {
 
     nextYearEquity += equityAccrued;
     financials.appreciationROE.push(equityAccrued / financials.equity[i]);
-    var interests = 0;
-    var loanReduction = 0;
-    for (var k = 0; k < 12; ++k) {
-      var interest = (financials.loanAmount[i] - loanReduction) * (info.mortgage.interest / 12);
-      loanReduction += financials.monthlyDebtService - interest;
-      interests += interest;
-    }
-    nextYearEquity += loanReduction;
-    financials.loanAmount.push(financials.loanAmount[i] - loanReduction);
-    financials.loanReductionROE.push(loanReduction / financials.equity[i]);
+    var amortization = amortizationForPeriod(info.property.price, info.loans, 12 * i, 12 * (i + 1));
+    nextYearEquity += amortization.loanReduction;
+    financials.loanAmount.push(financials.loanAmount[i] - amortization.loanReduction);
+    financials.loanReductionROE.push(amortization.loanReduction / financials.equity[i]);
     financials.equity.push(nextYearEquity);
-    financials.loanReductionROE.push(loanReduction / financials.equity[i]);
-    var remainingTaxDeduction = (depreciationOfAsset + interest) - financials.cashflow[i];
+    financials.loanReductionROE.push(amortization.loanReduction / financials.equity[i]);
+    var remainingTaxDeduction = (depreciationOfAsset + amortization.interestPaid) - financials.cashflow[i];
     financials.taxROE.push((remainingTaxDeduction * info.tax.bracket) / financials.equity[i]);
 
     financials.totalROE.push(financials.cashflowROE[i] + financials.appreciationROE[i] + financials.loanReductionROE[i] + financials.taxROE[i]);
