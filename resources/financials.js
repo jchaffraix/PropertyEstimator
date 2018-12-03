@@ -15,7 +15,6 @@ function computeFinancials(info) {
      JSON file:
      {
       "monthlyGrossIncome":
-      "vacancies": [...], // One entry per year generated determined by |numberOfYearsToProject|.
       "loanAmount": [...] // Remaining principal.
      }
   */
@@ -24,26 +23,18 @@ function computeFinancials(info) {
      
   var financials = {};
   financials.monthlyGrossIncome = [ grossScheduledMonthlyIncome(info.incomeStreams) ];
-  financials.vacancies = [convertToAbsoluteExpense(info.property.price, financials.monthlyGrossIncome[0], info.expenses[6])];
   financials.monthlyOperatingExpenses = [0];
   financials.loanAmount = [];
   // TODO: HACK to avoid repeating this for loop. FIX!!!!
   financials.expensesForChart = [['Expense', '$']];
   for (var i = 0; i < info.expenses.length; ++i) {
-    // We skip vacancies as it was computed and stored in financials.vacancies.
-    // TODO: This is gross.
     var expense = info.expenses[i];
-    if (expense.name === "vacancy") {
-      continue;
-    }
-
     var expenseAmount = convertToAbsoluteExpense(info.property.price, financials.monthlyGrossIncome[0], expense);
     financials.monthlyOperatingExpenses[0] += expenseAmount;
     financials.expensesForChart.push([expense.name, expenseAmount]);
   }
-  financials.expensesForChart.push(["vacancy", financials.vacancies[0]]);
   financials.equity = [ info.property.price - getLoanAmount(info.property.price, info.loans[0].amount) + info.closingCosts.amount + info.closingCosts.repairs ];
-  financials.noi = [ 12 * (financials.monthlyGrossIncome[0] - financials.monthlyOperatingExpenses[0] - financials.vacancies[0]) ];
+  financials.noi = [ 12 * (financials.monthlyGrossIncome[0] - financials.monthlyOperatingExpenses[0]) ];
   // TODO: Rename to balance.
   financials.loanAmount.push(getLoanAmount(info.property.price, info.loans[0].amount));
   var paymentPerPeriod = PMT(info.loans[0].rate / 12, info.loans[0].months, financials.loanAmount[0]);
@@ -82,9 +73,8 @@ function computeFinancials(info) {
 
   for (var i = 1; i < numberOfYearsToProject; ++i) {
     financials.monthlyGrossIncome.push(financials.monthlyGrossIncome[i - 1] * (1 + info.future.rentIncrease));
-    financials.vacancies.push(convertToAbsoluteExpense(info.property.price, financials.monthlyGrossIncome[i], info.expenses[6]));
     financials.monthlyOperatingExpenses.push(financials.monthlyOperatingExpenses[i - 1] * (1 + info.future.expenseIncrease));
-    financials.noi.push(12 * (financials.monthlyGrossIncome[i] - financials.monthlyOperatingExpenses[i] - financials.vacancies[i]));
+    financials.noi.push(12 * (financials.monthlyGrossIncome[i] - financials.monthlyOperatingExpenses[i]));
     financials.cashflow.push(financials.noi[i] - 12 * financials.monthlyDebtService);
 
     var nextYearEquity = financials.equity[i];
