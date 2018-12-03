@@ -23,7 +23,7 @@ function computeFinancials(info) {
   // an array of the different metrics of the property currently.
      
   var financials = {};
-  financials.monthlyGrossIncome = [ info.incomeStreams.rent + info.incomeStreams.other ];
+  financials.monthlyGrossIncome = [ grossScheduledMonthlyIncome(info.incomeStreams)];
   financials.vacancies = [info.expenses.vacancy * financials.monthlyGrossIncome[0]];
   financials.monthlyOperatingExpenses = [0];
   financials.loanAmount = [];
@@ -130,11 +130,15 @@ function convertToAbsoluteExpense(propertyPrice, grossScheduledMonthlyIncome, ex
   throw "Unknown expense type: " + expense.type;
 }
 
-function noi(propertyPrice, incomeStreams, expenses) {
-  var grossScheduledMonthlyIncome = 0;
+function grossScheduledMonthlyIncome(incomeStreams) {
+  var income = 0;
   for (var i = 0; i < incomeStreams.length; ++i) {
-    grossScheduledMonthlyIncome += incomeStreams[i].amount;
+    income += incomeStreams[i].amount;
   }
+  return income;
+}
+
+function noi(propertyPrice, incomeStreams, expenses) {
   // TODO: Support expenses that are a percentage of GOI (business tax).
   var expensePerMonth = 0;
   var expensePerYear = 0;
@@ -148,7 +152,7 @@ function noi(propertyPrice, incomeStreams, expenses) {
       throw "Unknown schedule for expense: " + expense.schedule;
     }
   }
-  return 12 * (grossScheduledMonthlyIncome - expensePerMonth) - expensePerYear;
+  return 12 * (grossScheduledMonthlyIncome(incomeStreams) - expensePerMonth) - expensePerYear;
 }
 
 function round(number) {

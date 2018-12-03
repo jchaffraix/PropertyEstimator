@@ -67,11 +67,11 @@
           // TODO: Improvements.
           "repairs": 10000,
         },
-        "incomeStreams": {
+        "incomeStreams": [
           // TODO: For PV analysis, we should probably allow for timed income streams.
-          "rent": 6150,
-          "other": 0,
-        },
+          {"name": "rent", "amount": 6150},
+          {"name": "other", "amount": 0},
+        ],
         "expenses": {
           // TODO: Some of these values are based on GOI, some GSI, some price and some absolute.
           "water": 0,
@@ -124,8 +124,9 @@
       $("#closingCostsInput").val(info.closingCosts.amount);
       $("#repairsCostsInput").val(info.closingCosts.repairs);
 
-      $("#rentsInput").val(info.incomeStreams.rent);
-      $("#otherIncomeInput").val(info.incomeStreams.other);
+      // TODO: Stop hardcoding the order of parameters.
+      $("#rentsInput").val(info.incomeStreams[0].amount);
+      $("#otherIncomeInput").val(info.incomeStreams[0].amount);
 
       $("#waterInput").val(info.expenses.water);
       $("#electricityInput").val(info.expenses.electricity);
@@ -197,9 +198,11 @@
       info.closingCosts.amount = +$("#closingCostsInput").val();
       info.closingCosts.repairs = +$("#repairsCostsInput").val();
 
-      info.incomeStreams = {};
-      info.incomeStreams.rent = +$("#rentsInput").val();
-      info.incomeStreams.other = +$("#otherIncomeInput").val();
+      info.incomeStreams = [];
+      info.incomeStreams[0] = {"name": "rent",
+                               "amount": +$("#rentsInput").val()};
+      info.incomeStreams[1] = {"name": "other",
+                               "amount": +$("#otherIncomeInput").val()};
 
       info.expenses = {};
       info.expenses.water = +$("#waterInput").val();
