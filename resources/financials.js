@@ -23,26 +23,23 @@ function computeFinancials(info) {
   // an array of the different metrics of the property currently.
      
   var financials = {};
-  financials.monthlyGrossIncome = [ grossScheduledMonthlyIncome(info.incomeStreams)];
-  financials.vacancies = [info.expenses.vacancy * financials.monthlyGrossIncome[0]];
+  financials.monthlyGrossIncome = [ grossScheduledMonthlyIncome(info.incomeStreams) ];
+  financials.vacancies = [convertToAbsoluteExpense(info.property.price, financials.monthlyGrossIncome[0], info.expenses[6])];
   financials.monthlyOperatingExpenses = [0];
   financials.loanAmount = [];
   // TODO: HACK to avoid repeating this for loop. FIX!!!!
   financials.expensesForChart = [['Expense', '$']];
-  for (var expense in info.expenses) {
-    // TODO: It's gross to ignore vacancy. It should be moved out of the operating expenses.
-    if (expense === "vacancy")
+  for (var i = 0; i < info.expenses.length; ++i) {
+    // We skip vacancies as it was computed and stored in financials.vacancies.
+    // TODO: This is gross.
+    var expense = info.expenses[i];
+    if (expense.name === "vacancy") {
       continue;
-
-    // TODO: Gross.
-    var expenseAmount = 0;
-    if (expense == "maintenance") {
-      expenseAmount += info.expenses[expense] * financials.monthlyGrossIncome[0];
-    } else {
-      expenseAmount = info.expenses[expense];
     }
+
+    var expenseAmount = convertToAbsoluteExpense(info.property.price, financials.monthlyGrossIncome[0], expense);
     financials.monthlyOperatingExpenses[0] += expenseAmount;
-    financials.expensesForChart.push([expense, expenseAmount]);
+    financials.expensesForChart.push([expense.name, expenseAmount]);
   }
   financials.expensesForChart.push(["vacancy", financials.vacancies[0]]);
   financials.equity = [ info.property.price - getLoanAmount(info.property.price, info.loans[0].amount) + info.closingCosts.amount + info.closingCosts.repairs ];
@@ -85,7 +82,7 @@ function computeFinancials(info) {
 
   for (var i = 1; i < numberOfYearsToProject; ++i) {
     financials.monthlyGrossIncome.push(financials.monthlyGrossIncome[i - 1] * (1 + info.future.rentIncrease));
-    financials.vacancies.push(info.expenses.vacancy * financials.monthlyGrossIncome[i]);
+    financials.vacancies.push(convertToAbsoluteExpense(info.property.price, financials.monthlyGrossIncome[i], info.expenses[6]));
     financials.monthlyOperatingExpenses.push(financials.monthlyOperatingExpenses[i - 1] * (1 + info.future.expenseIncrease));
     financials.noi.push(12 * (financials.monthlyGrossIncome[i] - financials.monthlyOperatingExpenses[i] - financials.vacancies[i]));
     financials.cashflow.push(financials.noi[i] - 12 * financials.monthlyDebtService);

@@ -58,7 +58,7 @@
           "zip": 99999,
         },
         "loans": [{
-          "amount": { "value": .35, "type": "percentage"},
+          "amount": { "value": .65, "type": "percentage"},
           "rate": 0.0525,
           "months": 360,
         }],
@@ -72,17 +72,17 @@
           {"name": "rent", "amount": 6150},
           {"name": "other", "amount": 0},
         ],
-        "expenses": {
-          // TODO: Some of these values are based on GOI, some GSI, some price and some absolute.
-          "water": 0,
-          "electricity": 0,
-          "insurance": 233,
+        "expenses": [
+          {"name": "water", "amount": 0, "type": "absolute"},
+          {"name": "electricity", "amount": 0, "type": "absolute"},
+          {"name": "garbage", "amount": 0, "type": "absolute"},
+          {"name": "insurance", "amount": 233, "type": "absolute"},
           // TODO: RAP fee + business tax.
-          "propertyTax": 899.42,
-          "others": 103,
-          "vacancy": .05,
-          "maintenance": .10,
-        },
+          {"name": "propertyTax", "amount": 899.42, "type": "absolute"},
+          {"name": "others", "amount": 103, "type": "absolute"},
+          {"name": "vacancy", "amount": .05, "type": "percentageGSI"},
+          {"name": "maintenance", "amount": .10, "type": "percentageGSI"}
+        ],
         "future": {
           "rentIncrease": 0.005,
           "expenseIncrease": 0.03,
@@ -116,7 +116,7 @@
 
       // Step 2: Financing.
       // TODO: Support absolute values.
-      $("#downpaymentInput").val(info.loans[0].amount.value * 100);
+      $("#downpaymentInput").val(100 - info.loans[0].amount.value * 100);
       $("#interestInput").val(info.loans[0].rate * 100);
       $("#durationInput").val(info.loans[0].months / 12);
 
@@ -126,17 +126,17 @@
 
       // TODO: Stop hardcoding the order of parameters.
       $("#rentsInput").val(info.incomeStreams[0].amount);
-      $("#otherIncomeInput").val(info.incomeStreams[0].amount);
+      $("#otherIncomeInput").val(info.incomeStreams[1].amount);
 
-      $("#waterInput").val(info.expenses.water);
-      $("#electricityInput").val(info.expenses.electricity);
-      $("#garbageInput").val(info.expenses.garbage);
-      $("#insuranceInput").val(info.expenses.insurance);
-      $("#propertyTaxInput").val(info.expenses.propertyTax);
-      $("#othersInput").val(info.expenses.others);
+      $("#waterInput").val(info.expenses[0].amount);
+      $("#electricityInput").val(info.expenses[1].amount);
+      $("#garbageInput").val(info.expenses[2].amount);
+      $("#insuranceInput").val(info.expenses[3].amount);
+      $("#propertyTaxInput").val(info.expenses[4].amount);
+      $("#othersInput").val(info.expenses[5].amount);
 
-      $("#vacancyInput").val(info.expenses.vacancy * 100);
-      $("#maintenanceInput").val(info.expenses.maintenance * 100);
+      $("#vacancyInput").val(info.expenses[6].amount * 100);
+      $("#maintenanceInput").val(info.expenses[7].amount * 100);
 
       // Step 4: Future and taxes.
       $("#rentIncreaseInput").val(info.future.rentIncrease * 100);
@@ -155,6 +155,14 @@
       $(".ui.dropdown").dropdown();
 
       updateUI();
+    }
+
+    function buildAbsoluteExpense(name, amount) {
+      return {"name": name, "amount": amount, "type": "absolute"};
+    }
+
+    function buildPercentageGSIExpense(name, amount) {
+      return {"name": name, "amount": amount, "type": "percentageGSI"};
     }
 
     function generateJSONFromUI(name_prefix) {
@@ -189,7 +197,7 @@
       info.loans[0].amount = {};
       // TODO: Support absolute amount.
       info.loans[0].amount.type = "percentage";
-      info.loans[0].amount.value = $("#downpaymentInput").val() / 100;
+      info.loans[0].amount.value = (100 - $("#downpaymentInput").val()) / 100;
       info.loans[0].rate = $("#interestInput").val() / 100;
       info.loans[0].months = 12 * $("#durationInput").val();
 
@@ -204,16 +212,16 @@
       info.incomeStreams[1] = {"name": "other",
                                "amount": +$("#otherIncomeInput").val()};
 
-      info.expenses = {};
-      info.expenses.water = +$("#waterInput").val();
-      info.expenses.electricity = +$("#electricityInput").val();
-      info.expenses.garbage = +$("#garbageInput").val();
-      info.expenses.insurance = +$("#insuranceInput").val();
-      info.expenses.propertyTax = +$("#propertyTaxInput").val();
-      info.expenses.others = +$("#othersInput").val();
+      info.expenses = [];
+      info.expenses[0] = buildAbsoluteExpense("water", +$("#waterInput").val());
+      info.expenses[1] = buildAbsoluteExpense("electricity", +$("#electricityInput").val());
+      info.expenses[2] = buildAbsoluteExpense("garbage", +$("#garbageInput").val());
+      info.expenses[3] = buildAbsoluteExpense("insurance", +$("#insuranceInput").val());
+      info.expenses[4] = buildAbsoluteExpense("propertyTax", +$("#propertyTaxInput").val());
+      info.expenses[5] = buildAbsoluteExpense("other", +$("#othersInput").val());
 
-      info.expenses.vacancy = $("#vacancyInput").val() / 100;
-      info.expenses.maintenance = $("#maintenanceInput").val() / 100;
+      info.expenses[6] = buildPercentageGSIExpense("vacancy", $("#vacancyInput").val() / 100);
+      info.expenses[7] = buildPercentageGSIExpense("maintenance", $("#maintenanceInput").val() / 100);
 
       // Step 4: Future and taxes.
       info.future = {};
