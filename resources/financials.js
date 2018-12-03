@@ -165,7 +165,16 @@ function round(number) {
   return Math.round(number * 100) / 100;
 }
 
-function amortizationForPeriod(loans, startPeriod, endPeriod) {
+function getLoanAmount(propertyPrice, amount) {
+  if (amount.type === "absolute") {
+    return amount.value;
+  } else if (amount.type === "percentage") {
+    return amount.value * propertyPrice;
+  }
+  throw "Invalid loan type: " + amount.type;
+}
+
+function amortizationForPeriod(propertyPrice, loans, startPeriod, endPeriod) {
   /* Start is excluded but end is included.
    *
    * Thus to compute the second year's worth of data you should
@@ -174,6 +183,7 @@ function amortizationForPeriod(loans, startPeriod, endPeriod) {
 
   // TODO: Support multiple loans.
   // TODO: Support interest only loans and/or deferred interest.
+  // TODO: Support a percentage of the property value.
   // TODO: Is the rounding correct? E.g. shouldn't each payment/interest be rounded?
   if (startPeriod > endPeriod) {
     throw "Invalid [start, end] periods: [" + startPeriod + ", " + endPeriod + "]";
@@ -186,8 +196,9 @@ function amortizationForPeriod(loans, startPeriod, endPeriod) {
     throw "Start/end periods are equal (did you provide them past the end of the loan?)";
   }
 
-  var balance = loans[0].amount;
-  var paymentPerPeriod = PMT(loans[0].rate / 12, loans[0].months, loans[0].amount);
+  var initialLoanAmount = getLoanAmount(propertyPrice, loans[0].amount);
+  var balance = initialLoanAmount;
+  var paymentPerPeriod = PMT(loans[0].rate / 12, loans[0].months, initialLoanAmount);
   // Move forward to the period to consider.
   for (var i = 0; i < startPeriod; ++i) {
     var interest = balance * loans[0].rate / 12;
@@ -218,13 +229,13 @@ function generateRoi(absoluteRoi, cashOutlay) {
 
 function roi(propertyPrice, closingCosts, incomeStreams, expenses, loans) {
   // TODO: Allow arbitrary start/end period.
-  var amortization = amortizationForPeriod(loans, 0, 12);
+  var amortization = amortizationForPeriod(propertyPrice, loans, 0, 12);
 
   var debtService =  amortization.interestPaid + amortization.loanReduction;
   var cashflow = noi(propertyPrice, incomeStreams, expenses) - debtService;
 
   // TODO: Support multiple loans and multiple closing costs.
-  var cashOutlay = propertyPrice - loans[0].amount + closingCosts[0].amount;
+  var cashOutlay = propertyPrice - getLoanAmount(propertyPrice, loans[0].amount) + closingCosts[0].amount;
 
   var roi = {};
   roi.cashOnCash = generateRoi(cashflow, cashOutlay);
